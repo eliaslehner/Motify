@@ -22,11 +22,18 @@ const Profile = () => {
 
   const loadUserData = async () => {
     if (!wallet?.address) return;
-    
+
     try {
       setLoadingData(true);
+      // Mock the stats data
+      const mockStats: UserStats = {
+        totalChallengesSucceeded: 12,
+        totalChallengesParticipated: 18,
+        totalAmountContributedUsd: 2.245, // in ETH
+      };
+
       const [statsData, userActivities] = await Promise.all([
-        apiService.getUserStats(wallet.address),
+        Promise.resolve(mockStats), // Return mocked stats
         apiService.getUserActivity(wallet.address),
       ]);
       setUserStats(statsData);
@@ -56,14 +63,14 @@ const Profile = () => {
     {
       icon: DollarSign,
       label: "Total Contributed",
-      value: `$${userStats.totalAmountContributedUsd.toFixed(2)}`,
+      value: `${userStats.totalAmountContributedUsd.toFixed(4)} ETH`,
       color: "text-warning",
       bgColor: "bg-warning-light",
     },
     {
       icon: TrendingUp,
       label: "Success Rate",
-      value: userStats.totalChallengesParticipated > 0 
+      value: userStats.totalChallengesParticipated > 0
         ? `${Math.round((userStats.totalChallengesSucceeded / userStats.totalChallengesParticipated) * 100)}%`
         : "0%",
       color: "text-accent",
@@ -87,7 +94,7 @@ const Profile = () => {
     {
       icon: DollarSign,
       label: "Total Contributed",
-      value: "$0",
+      value: "0 ETH",
       color: "text-warning",
       bgColor: "bg-warning-light",
     },
@@ -128,8 +135,8 @@ const Profile = () => {
             {/* Profile Info */}
             <div className="flex items-center gap-4 mb-6">
               <Avatar className="h-24 w-24 border-2 border-border">
-                <AvatarImage 
-                  src={user?.pfpUrl || "/placeholder.svg"} 
+                <AvatarImage
+                  src={user?.pfpUrl || "/placeholder.svg"}
                   alt={user?.displayName || "Profile"}
                   className="object-cover"
                 />
@@ -167,7 +174,7 @@ const Profile = () => {
                 </Card>
               ))}
             </div>
-    
+
             <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
             <div className="space-y-3">
               {[
@@ -182,11 +189,10 @@ const Profile = () => {
                       <p className="text-sm text-muted-foreground">{activity.date}</p>
                     </div>
                     <div
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        activity.status === "success"
-                          ? "bg-success-light text-success"
-                          : "bg-destructive-light text-destructive"
-                      }`}
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${activity.status === "success"
+                        ? "bg-success-light text-success"
+                        : "bg-destructive-light text-destructive"
+                        }`}
                     >
                       {activity.status === "success" ? "Won" : "Lost"}
                     </div>

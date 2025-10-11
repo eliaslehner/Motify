@@ -137,7 +137,8 @@ const ChallengeDetail = () => {
       if (wallet?.address && apiService.isUserParticipating(challengeData, wallet.address)) {
         const progressData = await apiService.getChallengeProgress(
           challengeData.id,
-          wallet.address
+          wallet.address,
+          1000
         );
         setProgress(progressData);
       }

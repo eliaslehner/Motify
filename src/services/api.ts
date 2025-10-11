@@ -258,12 +258,12 @@ class ApiService {
     }
   }
 
-  async getChallengeProgress(challengeId: number, walletAddress: string): Promise<ChallengeProgress | null> {
+  async getChallengeProgress(challengeId: number, walletAddress: string, goal: number = 1000): Promise<ChallengeProgress | null> {
     try {
       const response = await fetch(`${API_URL}/challenges/${challengeId}/progress`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletAddress }),
+        body: JSON.stringify({ walletAddress, goal }),
       });
       
       if (!response.ok) {
