@@ -103,12 +103,6 @@ const CreateChallenge = () => {
     // Validate dates
     const startDate = new Date(formData.startDate);
     const endDate = new Date(formData.endDate);
-    const now = new Date();
-
-    if (startDate < now) {
-      toast.error("Start date must be in the future");
-      return;
-    }
 
     if (endDate <= startDate) {
       toast.error("End date must be after start date");

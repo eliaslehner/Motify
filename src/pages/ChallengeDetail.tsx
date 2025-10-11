@@ -290,7 +290,7 @@ const ChallengeDetail = () => {
           // Use the original datetime strings from the backend for accurate comparison
           const backendStartDate = challenge.startDate; // This will be the formatted display date
           const backendEndDate = challenge.endDate; // This will be the formatted display date
-          
+
           // We need to get the original challenge data to check precise timing
           // For now, we'll use the challenge.active property which is set accurately in mapBackendToFrontend
           if (isChallengeUpcoming(challenge.startDate) || (!challenge.active && challenge.duration.includes('Starts in'))) {
@@ -345,7 +345,7 @@ const ChallengeDetail = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Stake</p>
-                <p className="font-semibold text-lg">{challenge.stake} USDC</p>
+                <p className="font-semibold text-lg">{challenge.stake} ETH</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -449,9 +449,9 @@ const ChallengeDetail = () => {
               <p className="text-muted-foreground text-sm">STRAVA API</p>
             </div>
             <div className="flex items-center justify-center">
-              <img 
-                src="/strava_logo.svg" 
-                alt="Strava API" 
+              <img
+                src="/strava_logo.svg"
+                alt="Strava API"
                 className="h-12 w-12 rounded-full object-cover"
               />
             </div>
@@ -486,7 +486,7 @@ const ChallengeDetail = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium">${participant.amountUsd}</p>
+                    <p className="text-sm font-medium">{participant.amountUsd} ETH</p>
                     <p className="text-xs text-muted-foreground">staked</p>
                   </div>
                 </div>
@@ -496,7 +496,7 @@ const ChallengeDetail = () => {
         </Card>
 
         {/* Action Button - Only show if user is not participating */}
-        {!isParticipating && wallet?.isConnected && challenge.active && (
+        {!isParticipating && wallet?.isConnected && (
           <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
             <DialogTrigger asChild>
               <Button
@@ -562,7 +562,7 @@ const ChallengeDetail = () => {
         {isParticipating && (
           <Card className="p-4 bg-success/10 border-success">
             <p className="text-center text-success font-medium mb-3">
-              You're participating with ${userStake} staked
+              You're participating with {userStake} ETH staked
             </p>
 
             {/* Show participant status from blockchain if available */}

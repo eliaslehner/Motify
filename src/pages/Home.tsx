@@ -60,7 +60,7 @@ const Home = () => {
   const getStatusBadge = (challenge: Challenge, isUserJoined: boolean) => {
     // Use original dates for accurate time calculations
     const { originalStartDate, originalEndDate } = challenge;
-    
+
     // Check if challenge is upcoming
     if (isChallengeUpcoming(originalStartDate)) {
       return (
@@ -121,8 +121,8 @@ const Home = () => {
           <h1 className="text-2xl font-bold">Home</h1>
           <Link to="/profile">
             <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
-              <AvatarImage 
-                src={user?.pfpUrl || "/placeholder.svg"} 
+              <AvatarImage
+                src={user?.pfpUrl || "/placeholder.svg"}
                 alt={user?.displayName || "Profile"}
                 className="object-cover"
               />
@@ -158,53 +158,53 @@ const Home = () => {
               </Card>
             ) : (
               allChallenges.map((challenge) => {
-                const isUserJoined = wallet?.address 
+                const isUserJoined = wallet?.address
                   ? apiService.isUserParticipating(challenge, wallet.address)
                   : false;
-                
+
                 return (
                   <Link key={challenge.id} to={`/challenge/${challenge.id}`} className="block">
                     <Card className="p-4 hover:shadow-md transition-all cursor-pointer bg-gradient-card border-border">
-                    {/* First row: Title and badges */}
-                    <div className="flex items-start justify-between mb-3">
-                      <h3 className="font-semibold text-lg">{challenge.title}</h3>
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(challenge, isUserJoined)}
-                        {isUserJoined && (
-                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-success text-white">
-                            <Check className="h-4 w-4" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Second row: Two columns */}
-                    <div className="flex items-center justify-between">
-                      {/* Left column: Duration and stats */}
-                      <div className="flex flex-col gap-2">
-                        <p className="text-sm text-muted-foreground">{challenge.duration}</p>
-                        <div className="flex items-center gap-4 text-sm">
-                          <div className="flex items-center gap-1">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-foreground font-medium">{challenge.participants}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Coins className="h-4 w-4 text-primary" />
-                            <span className="text-foreground font-medium">{challenge.stake} USDC</span>
-                          </div>
+                      {/* First row: Title and badges */}
+                      <div className="flex items-start justify-between mb-3">
+                        <h3 className="font-semibold text-lg">{challenge.title}</h3>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(challenge, isUserJoined)}
+                          {isUserJoined && (
+                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-success text-white">
+                              <Check className="h-4 w-4" />
+                            </div>
+                          )}
                         </div>
                       </div>
-                      
-                      {/* Right column: Logo */}
-                      <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center p-2 shrink-0">
-                        <img 
-                          src="/strava_logo.svg" 
-                          alt="Strava" 
-                          className="h-full w-full rounded-full object-contain"
-                        />
+
+                      {/* Second row: Two columns */}
+                      <div className="flex items-center justify-between">
+                        {/* Left column: Duration and stats */}
+                        <div className="flex flex-col gap-2">
+                          <p className="text-sm text-muted-foreground">{challenge.duration}</p>
+                          <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center gap-1">
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-foreground font-medium">{challenge.participants}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Coins className="h-4 w-4 text-primary" />
+                              <span className="text-foreground font-medium">{challenge.stake} ETH</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right column: Logo */}
+                        <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center p-2 shrink-0">
+                          <img
+                            src="/strava_logo.svg"
+                            alt="Strava"
+                            className="h-full w-full rounded-full object-contain"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  </Card>
+                    </Card>
                   </Link>
                 );
               })
@@ -232,10 +232,10 @@ const Home = () => {
               </Card>
             ) : (
               userChallenges.map((challenge) => {
-                const isUserJoined = wallet?.address 
+                const isUserJoined = wallet?.address
                   ? apiService.isUserParticipating(challenge, wallet.address)
                   : false;
-                
+
                 return (
                   <Link key={challenge.id} to={`/challenge/${challenge.id}`} className="block">
                     <Card className="p-4 hover:shadow-md transition-all cursor-pointer bg-gradient-card border-border">
@@ -252,14 +252,14 @@ const Home = () => {
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Coins className="h-4 w-4 text-primary" />
-                                  <span className="text-foreground font-medium">{challenge.stake} USDC</span>
+                                  <span className="text-foreground font-medium">{challenge.stake} ETH</span>
                                 </div>
                               </div>
                             </div>
                             <div className="flex items-center h-full">
-                              <img 
-                                src="/strava_logo.svg" 
-                                alt="Strava" 
+                              <img
+                                src="/strava_logo.svg"
+                                alt="Strava"
                                 className="h-12 w-auto object-contain"
                               />
                             </div>
