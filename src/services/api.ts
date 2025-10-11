@@ -93,15 +93,12 @@ function formatDuration(startDate: string, endDate: string): string {
 // Convert backend challenge to frontend format
 function mapBackendToFrontend(backendChallenge: BackendChallenge): Challenge {
   const totalStake = backendChallenge.participants.reduce((sum, p) => sum + p.amountUsd, 0);
-  const avgStake = backendChallenge.participants.length > 0 
-    ? Math.round(totalStake / backendChallenge.participants.length) 
-    : 0;
   
   return {
     id: backendChallenge.id,
     title: backendChallenge.name,
     description: backendChallenge.description,
-    stake: avgStake,
+    stake: totalStake, // Changed from avgStake to totalStake
     participants: backendChallenge.participants.length,
     duration: formatDuration(backendChallenge.start_date, backendChallenge.end_date),
     startDate: new Date(backendChallenge.start_date).toLocaleDateString('en-US', { 

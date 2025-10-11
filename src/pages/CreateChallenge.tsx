@@ -122,7 +122,7 @@ const CreateChallenge = () => {
               <Label htmlFor="name">Challenge Name</Label>
               <Input
                 id="name"
-                placeholder="e.g., Run 50km"
+                placeholder="e.g., 10,000 Steps Challenge"
                 required
                 className="bg-background"
                 value={formData.name}
@@ -151,7 +151,7 @@ const CreateChallenge = () => {
                   id="startDate"
                   type="date"
                   required
-                  className="bg-background w-full"
+                  className="bg-background w-full [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   value={formData.startDate}
                   onChange={handleInputChange}
                 />
@@ -162,7 +162,7 @@ const CreateChallenge = () => {
                   id="endDate"
                   type="date"
                   required
-                  className="bg-background w-full"
+                  className="bg-background w-full [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   value={formData.endDate}
                   onChange={handleInputChange}
                 />

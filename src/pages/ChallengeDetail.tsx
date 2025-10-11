@@ -145,14 +145,49 @@ const ChallengeDetail = () => {
         </div>
       </header>
 
-      {/* Active Badge */}
-      {challenge.active && (
-        <div className="container mx-auto px-4 pt-4">
-          <Badge variant="secondary" className="bg-success-light text-success">
-            Active
-          </Badge>
-        </div>
-      )}
+      {/* Status Badge */}
+      <div className="container mx-auto px-4 pt-4">
+        {(() => {
+          const now = new Date();
+          const startDate = new Date(challenge.startDate);
+          const endDate = new Date(challenge.endDate);
+          
+          if (now < startDate) {
+            return (
+              <Badge variant="secondary" className="bg-blue-500/20 text-blue-500">
+                Upcoming
+              </Badge>
+            );
+          } else if (now > endDate) {
+            // Check if user succeeded (if participating)
+            if (progress && progress.currentlySucceeded) {
+              return (
+                <Badge variant="secondary" className="bg-success-light text-success">
+                  Completed - Success
+                </Badge>
+              );
+            } else if (progress) {
+              return (
+                <Badge variant="secondary" className="bg-destructive/20 text-destructive">
+                  Completed - Failed
+                </Badge>
+              );
+            } else {
+              return (
+                <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                  Completed
+                </Badge>
+              );
+            }
+          } else {
+            return (
+              <Badge variant="secondary" className="bg-success-light text-success">
+                Active
+              </Badge>
+            );
+          }
+        })()}
+      </div>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
@@ -262,6 +297,23 @@ const ChallengeDetail = () => {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Time Remaining</span>
               <span className="font-medium text-warning">{challenge.duration}</span>
+            </div>
+          </div>
+        </Card>
+
+        {/* API Integration Card */}
+        <Card className="p-6 bg-gradient-card border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg mb-1">API</h3>
+              <p className="text-muted-foreground text-sm">STRAVA API</p>
+            </div>
+            <div className="flex items-center justify-center">
+              <img 
+                src="/strava_logo.svg" 
+                alt="Strava API" 
+                className="h-12 w-auto max-w-[120px] object-contain"
+              />
             </div>
           </div>
         </Card>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Users, Coins } from "lucide-react";
+import { Plus, Users, Coins, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -87,33 +87,56 @@ const Home = () => {
                 </Link>
               </Card>
             ) : (
-              allChallenges.map((challenge) => (
-                <Link key={challenge.id} to={`/challenge/${challenge.id}`} className="block">
-                  <Card className="p-4 hover:shadow-md transition-all cursor-pointer bg-gradient-card border-border">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg mb-1">{challenge.title}</h3>
-                        <p className="text-sm text-muted-foreground">{challenge.duration}</p>
+              allChallenges.map((challenge) => {
+                const isUserJoined = wallet?.address 
+                  ? apiService.isUserParticipating(challenge, wallet.address)
+                  : false;
+                
+                return (
+                  <Link key={challenge.id} to={`/challenge/${challenge.id}`} className="block">
+                    <Card className="p-4 hover:shadow-md transition-all cursor-pointer bg-gradient-card border-border">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-1">{challenge.title}</h3>
+                          <p className="text-sm text-muted-foreground">{challenge.duration}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {challenge.active && (
+                            <Badge variant="secondary" className="bg-success-light text-success">
+                              Active
+                            </Badge>
+                          )}
+                          {isUserJoined && (
+                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-success text-white">
+                              <Check className="h-4 w-4" />
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      {challenge.active && (
-                        <Badge variant="secondary" className="bg-success-light text-success">
-                          Active
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-foreground font-medium">{challenge.participants}</span>
+                      
+                      {/* Strava Logo */}
+                      <div className="mb-3">
+                        <img 
+                          src="/strava_logo.svg" 
+                          alt="Strava" 
+                          className="h-6 w-auto object-contain"
+                        />
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Coins className="h-4 w-4 text-primary" />
-                        <span className="text-foreground font-medium">{challenge.stake} USDC</span>
+                      
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-1">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-foreground font-medium">{challenge.participants}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Coins className="h-4 w-4 text-primary" />
+                          <span className="text-foreground font-medium">{challenge.stake} USDC</span>
+                        </div>
                       </div>
-                    </div>
-                  </Card>
-                </Link>
-              ))
+                    </Card>
+                  </Link>
+                );
+              })
             )}
           </TabsContent>
 
@@ -137,33 +160,56 @@ const Home = () => {
                 </Link>
               </Card>
             ) : (
-              userChallenges.map((challenge) => (
-                <Link key={challenge.id} to={`/challenge/${challenge.id}`} className="block">
-                  <Card className="p-4 hover:shadow-md transition-all cursor-pointer bg-gradient-card border-border">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg mb-1">{challenge.title}</h3>
-                        <p className="text-sm text-muted-foreground">{challenge.duration}</p>
+              userChallenges.map((challenge) => {
+                const isUserJoined = wallet?.address 
+                  ? apiService.isUserParticipating(challenge, wallet.address)
+                  : false;
+                
+                return (
+                  <Link key={challenge.id} to={`/challenge/${challenge.id}`} className="block">
+                    <Card className="p-4 hover:shadow-md transition-all cursor-pointer bg-gradient-card border-border">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-1">{challenge.title}</h3>
+                          <p className="text-sm text-muted-foreground">{challenge.duration}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {challenge.active && (
+                            <Badge variant="secondary" className="bg-success-light text-success">
+                              Active
+                            </Badge>
+                          )}
+                          {isUserJoined && (
+                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-success text-white">
+                              <Check className="h-4 w-4" />
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      {challenge.active && (
-                        <Badge variant="secondary" className="bg-success-light text-success">
-                          Active
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-foreground font-medium">{challenge.participants}</span>
+                      
+                      {/* Strava Logo */}
+                      <div className="mb-3">
+                        <img 
+                          src="/strava_logo.svg" 
+                          alt="Strava" 
+                          className="h-6 w-auto object-contain"
+                        />
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Coins className="h-4 w-4 text-primary" />
-                        <span className="text-foreground font-medium">{challenge.stake} USDC</span>
+                      
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-1">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-foreground font-medium">{challenge.participants}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Coins className="h-4 w-4 text-primary" />
+                          <span className="text-foreground font-medium">{challenge.stake} USDC</span>
+                        </div>
                       </div>
-                    </div>
-                  </Card>
-                </Link>
-              ))
+                    </Card>
+                  </Link>
+                );
+              })
             )}
           </TabsContent>
         </Tabs>
