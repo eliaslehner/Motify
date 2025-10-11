@@ -38,6 +38,37 @@ const Profile = () => {
     }
   };
 
+  const stats = [
+    {
+      icon: Trophy,
+      label: "Completed",
+      value: "12",
+      color: "text-success",
+      bgColor: "bg-success-light",
+    },
+    {
+      icon: Target,
+      label: "Active",
+      value: "3",
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      icon: DollarSign,
+      label: "Total Staked",
+      value: "$450",
+      color: "text-warning",
+      bgColor: "bg-warning-light",
+    },
+    {
+      icon: TrendingUp,
+      label: "Success Rate",
+      value: "75%",
+      color: "text-accent",
+      bgColor: "bg-accent/10",
+    },
+  ];
+
   const statCards = userStats ? [
     {
       icon: Trophy,
@@ -120,55 +151,45 @@ const Profile = () => {
             <Separator className="mb-6" />
 
             {/* Stats Dashboard */}
-            {loadingData ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : (
-              <>
-                <h2 className="text-xl font-semibold mb-4">Your Stats</h2>
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  {statCards.map((stat, index) => (
-                    <Card key={index} className="p-4 bg-gradient-card border-border">
-                      <div className={`${stat.bgColor} ${stat.color} w-10 h-10 rounded-lg flex items-center justify-center mb-3`}>
-                        <stat.icon className="h-5 w-5" />
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
-                      <p className="text-2xl font-bold">{stat.value}</p>
-                    </Card>
-                  ))}
-                </div>
-
-                <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
-                {activities.length === 0 ? (
-                  <Card className="p-8 text-center bg-gradient-card border-border">
-                    <p className="text-muted-foreground">No activity yet</p>
-                  </Card>
-                ) : (
-                  <div className="space-y-3">
-                    {activities.map((activity) => (
-                      <Card key={activity.id} className="p-4 bg-gradient-card border-border">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-medium">{activity.title}</h3>
-                            <p className="text-sm text-muted-foreground">{activity.date}</p>
-                          </div>
-                          <div
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              activity.status === "success"
-                                ? "bg-success-light text-success"
-                                : "bg-destructive-light text-destructive"
-                            }`}
-                          >
-                            {activity.status === "success" ? "Won" : "Lost"}
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
+            <h2 className="text-xl font-semibold mb-4">Your Stats</h2>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {stats.map((stat, index) => (
+                <Card key={index} className="p-4 bg-gradient-card border-border">
+                  <div className={`${stat.bgColor} ${stat.color} w-10 h-10 rounded-lg flex items-center justify-center mb-3`}>
+                    <stat.icon className="h-5 w-5" />
                   </div>
-                )}
-              </>
-            )}
+                  <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                </Card>
+              ))}
+            </div>
+    
+            <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
+            <div className="space-y-3">
+              {[
+                { title: "Completed: Run 50km", date: "2 days ago", status: "success" },
+                { title: "Failed: 100 Commits", date: "1 week ago", status: "failed" },
+                { title: "Completed: Read 5 Books", date: "2 weeks ago", status: "success" },
+              ].map((activity, index) => (
+                <Card key={index} className="p-4 bg-gradient-card border-border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">{activity.title}</h3>
+                      <p className="text-sm text-muted-foreground">{activity.date}</p>
+                    </div>
+                    <div
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        activity.status === "success"
+                          ? "bg-success-light text-success"
+                          : "bg-destructive-light text-destructive"
+                      }`}
+                    >
+                      {activity.status === "success" ? "Won" : "Lost"}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
           </>
         )}
       </main>
