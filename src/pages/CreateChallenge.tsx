@@ -23,7 +23,6 @@ const CreateChallenge = () => {
     description: "",
     startDate: "",
     endDate: "",
-    wager: "",
     goal: "",
     contractAddress: "",
   });
@@ -83,14 +82,7 @@ const CreateChallenge = () => {
         goal: formData.goal,
       });
 
-      const wagerAmount = parseFloat(formData.wager);
-      if (wagerAmount >= 1 && wallet?.address) {
-        await apiService.joinChallenge(challenge.id, wallet.address, wagerAmount);
-        toast.success(`Challenge saved and joined with $${wagerAmount}!`);
-      } else {
-        toast.success("Challenge saved successfully!");
-      }
-
+      toast.success("Challenge created successfully!");
       navigate("/");
     } catch (error) {
       console.error("Error saving challenge to backend:", error);
@@ -120,13 +112,6 @@ const CreateChallenge = () => {
 
     if (endDate <= startDate) {
       toast.error("End date must be after start date");
-      return;
-    }
-
-    // Validate wager amount
-    const wagerAmount = parseFloat(formData.wager);
-    if (wagerAmount < 0.00001) {
-      toast.error("Minimum wager is 0.00001 ETH");
       return;
     }
 
@@ -238,25 +223,6 @@ const CreateChallenge = () => {
                   onChange={handleInputChange}
                 />
               </div>
-            </div>
-
-            {/* Wager Amount */}
-            <div className="space-y-2">
-              <Label htmlFor="wager">Your Wager Amount (ETH)</Label>
-              <Input
-                id="wager"
-                type="number"
-                placeholder="0.01"
-                min="0.00001"
-                step="0.00001"
-                required
-                className="bg-background"
-                value={formData.wager}
-                onChange={handleInputChange}
-              />
-              <p className="text-xs text-muted-foreground">
-                Minimum 0.00001 ETH. Your stake will be locked in the smart contract.
-              </p>
             </div>
 
             {/* Goal */}
