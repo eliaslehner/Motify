@@ -117,17 +117,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } else {
         // On web - use Coinbase Wallet connector
+        // Only trigger the connection, don't set wallet state here
+        // The useEffect will handle setting wallet state when wagmi connects
         const coinbaseConnector = connectors.find((c) => c.id === 'coinbaseWalletSDK');
         if (coinbaseConnector) {
           connect({ connector: coinbaseConnector });
+        } else {
+          console.error('Coinbase Wallet connector not found');
         }
       }
     } catch (error) {
       console.error('Failed to connect wallet:', error);
-      setWallet({
-        address: '',
-        isConnected: false,
-      });
     }
   };
 

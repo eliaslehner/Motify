@@ -1,5 +1,6 @@
 // API service for Flask backend integration
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Remove trailing slash to prevent double slashes in URLs
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
 
 // Backend Challenge interface (as received from Flask)
 export interface BackendChallenge {
