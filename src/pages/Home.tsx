@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiService, Challenge } from "@/services/api";
+import { apiService, Challenge, isChallengeUpcoming, isChallengeCompleted, isChallengeActive } from "@/services/api";
 import { toast } from "sonner";
 import { WebLogin } from "@/components/WebLogin";
 
@@ -17,6 +17,7 @@ const Home = () => {
   const [allChallenges, setAllChallenges] = useState<Challenge[]>([]);
   const [userChallenges, setUserChallenges] = useState<Challenge[]>([]);
   const [loadingChallenges, setLoadingChallenges] = useState(true);
+  const [challengeProgresses, setChallengeProgresses] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     loadChallenges();
@@ -31,6 +32,22 @@ const Home = () => {
       if (wallet?.address) {
         const userChallenges = await apiService.getUserChallenges(wallet.address);
         setUserChallenges(userChallenges);
+
+        // Load progress for completed challenges where user participated
+        const progressPromises = userChallenges
+          .filter(challenge => isChallengeCompleted(challenge.endDate))
+          .map(async (challenge) => {
+            const progress = await apiService.getChallengeProgress(challenge.id, wallet.address);
+            return { challengeId: challenge.id, succeeded: progress?.currentlySucceeded || false };
+          });
+
+        const progressResults = await Promise.all(progressPromises);
+        const progressMap = progressResults.reduce((acc, result) => {
+          acc[result.challengeId] = result.succeeded;
+          return acc;
+        }, {} as Record<number, boolean>);
+
+        setChallengeProgresses(progressMap);
       }
     } catch (error) {
       console.error('Failed to load challenges:', error);
@@ -38,6 +55,59 @@ const Home = () => {
     } finally {
       setLoadingChallenges(false);
     }
+  };
+
+  const getStatusBadge = (challenge: Challenge, isUserJoined: boolean) => {
+    // Use original dates for accurate time calculations
+    const { originalStartDate, originalEndDate } = challenge;
+    
+    // Check if challenge is upcoming
+    if (isChallengeUpcoming(originalStartDate)) {
+      return (
+        <Badge variant="secondary" className="bg-orange-500/20 text-orange-500">
+          Upcoming
+        </Badge>
+      );
+    }
+
+    // Check if challenge is completed
+    if (isChallengeCompleted(originalEndDate)) {
+      if (isUserJoined) {
+        // User participated - check if they succeeded
+        const succeeded = challengeProgresses[challenge.id];
+        if (succeeded) {
+          return (
+            <Badge variant="secondary" className="bg-green-700/20 text-green-700">
+              Done
+            </Badge>
+          );
+        } else {
+          return (
+            <Badge variant="secondary" className="bg-red-500/20 text-red-500">
+              Failed
+            </Badge>
+          );
+        }
+      } else {
+        // User didn't participate - just show completed
+        return (
+          <Badge variant="secondary" className="bg-muted text-muted-foreground">
+            Completed
+          </Badge>
+        );
+      }
+    }
+
+    // Challenge is active
+    if (isChallengeActive(originalStartDate, originalEndDate)) {
+      return (
+        <Badge variant="secondary" className="bg-success-light text-success">
+          Active
+        </Badge>
+      );
+    }
+
+    return null;
   };
 
   if (!isInMiniApp && !isAuthenticated && !authLoading) {
@@ -99,11 +169,7 @@ const Home = () => {
                     <div className="flex items-start justify-between mb-3">
                       <h3 className="font-semibold text-lg">{challenge.title}</h3>
                       <div className="flex items-center gap-2">
-                        {challenge.active && (
-                          <Badge variant="secondary" className="bg-success-light text-success">
-                            Active
-                          </Badge>
-                        )}
+                        {getStatusBadge(challenge, isUserJoined)}
                         {isUserJoined && (
                           <div className="flex items-center justify-center w-6 h-6 rounded-full bg-success text-white">
                             <Check className="h-4 w-4" />
@@ -200,11 +266,7 @@ const Home = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          {challenge.active && (
-                            <Badge variant="secondary" className="bg-success-light text-success">
-                              Active
-                            </Badge>
-                          )}
+                          {getStatusBadge(challenge, isUserJoined)}
                           {isUserJoined && (
                             <div className="flex items-center justify-center w-6 h-6 rounded-full bg-success text-white">
                               <Check className="h-4 w-4" />

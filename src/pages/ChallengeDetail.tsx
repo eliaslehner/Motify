@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { apiService, Challenge, ChallengeProgress } from "@/services/api";
+import { apiService, Challenge, ChallengeProgress, isChallengeActive, isChallengeCompleted, isChallengeUpcoming } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
@@ -148,17 +148,19 @@ const ChallengeDetail = () => {
       {/* Status Badge */}
       <div className="container mx-auto px-4 pt-4">
         {(() => {
-          const now = new Date();
-          const startDate = new Date(challenge.startDate);
-          const endDate = new Date(challenge.endDate);
+          // Use the original datetime strings from the backend for accurate comparison
+          const backendStartDate = challenge.startDate; // This will be the formatted display date
+          const backendEndDate = challenge.endDate; // This will be the formatted display date
           
-          if (now < startDate) {
+          // We need to get the original challenge data to check precise timing
+          // For now, we'll use the challenge.active property which is set accurately in mapBackendToFrontend
+          if (isChallengeUpcoming(challenge.startDate) || (!challenge.active && challenge.duration.includes('Starts in'))) {
             return (
               <Badge variant="secondary" className="bg-blue-500/20 text-blue-500">
                 Upcoming
               </Badge>
             );
-          } else if (now > endDate) {
+          } else if (!challenge.active && challenge.duration === 'Completed') {
             // Check if user succeeded (if participating)
             if (progress && progress.currentlySucceeded) {
               return (

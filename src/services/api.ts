@@ -28,6 +28,9 @@ export interface Challenge {
   duration: string;
   startDate: string;
   endDate: string;
+  // Add original date fields for accurate time calculations
+  originalStartDate: string;
+  originalEndDate: string;
   progress: number;
   currentProgress: string;
   goal: string;
@@ -71,23 +74,77 @@ export interface ChallengeProgress {
   currentlySucceeded: boolean;
 }
 
-// Helper function to format duration
+// Helper function to format duration with precise time calculations
 function formatDuration(startDate: string, endDate: string): string {
   const now = new Date();
   const end = new Date(endDate);
   const start = new Date(startDate);
   
   if (now < start) {
-    const daysUntilStart = Math.ceil((start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    return `Starts in ${daysUntilStart} day${daysUntilStart !== 1 ? 's' : ''}`;
+    const msUntilStart = start.getTime() - now.getTime();
+    const daysUntilStart = Math.ceil(msUntilStart / (1000 * 60 * 60 * 24));
+    const hoursUntilStart = Math.ceil(msUntilStart / (1000 * 60 * 60));
+    
+    if (daysUntilStart > 1) {
+      return `Starts in ${daysUntilStart} day${daysUntilStart !== 1 ? 's' : ''}`;
+    } else if (hoursUntilStart > 1) {
+      return `Starts in ${hoursUntilStart} hour${hoursUntilStart !== 1 ? 's' : ''}`;
+    } else {
+      const minutesUntilStart = Math.ceil(msUntilStart / (1000 * 60));
+      return `Starts in ${minutesUntilStart} minute${minutesUntilStart !== 1 ? 's' : ''}`;
+    }
   }
   
   if (now > end) {
     return 'Completed';
   }
   
-  const daysLeft = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  return `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`;
+  const msLeft = end.getTime() - now.getTime();
+  const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
+  const hoursLeft = Math.ceil(msLeft / (1000 * 60 * 60));
+  
+  if (daysLeft > 1) {
+    return `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`;
+  } else if (hoursLeft > 1) {
+    return `${hoursLeft} hour${hoursLeft !== 1 ? 's' : ''} left`;
+  } else {
+    const minutesLeft = Math.ceil(msLeft / (1000 * 60));
+    return `${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''} left`;
+  }
+}
+
+// Helper function to format date for display while preserving original datetime
+function formatDisplayDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// Helper function to check if a challenge is currently active
+export function isChallengeActive(startDate: string, endDate: string): boolean {
+  const now = new Date();
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  return now >= start && now <= end;
+}
+
+// Helper function to check if a challenge is completed
+export function isChallengeCompleted(endDate: string): boolean {
+  const now = new Date();
+  const end = new Date(endDate);
+  return now > end;
+}
+
+// Helper function to check if a challenge is upcoming
+export function isChallengeUpcoming(startDate: string): boolean {
+  const now = new Date();
+  const start = new Date(startDate);
+  return now < start;
 }
 
 // Convert backend challenge to frontend format
@@ -98,23 +155,18 @@ function mapBackendToFrontend(backendChallenge: BackendChallenge): Challenge {
     id: backendChallenge.id,
     title: backendChallenge.name,
     description: backendChallenge.description,
-    stake: totalStake, // Changed from avgStake to totalStake
+    stake: totalStake,
     participants: backendChallenge.participants.length,
     duration: formatDuration(backendChallenge.start_date, backendChallenge.end_date),
-    startDate: new Date(backendChallenge.start_date).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    }),
-    endDate: new Date(backendChallenge.end_date).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    }),
-    progress: 0, // Will be updated when fetching individual progress
+    startDate: formatDisplayDate(backendChallenge.start_date),
+    endDate: formatDisplayDate(backendChallenge.end_date),
+    // Preserve original dates for accurate calculations
+    originalStartDate: backendChallenge.start_date,
+    originalEndDate: backendChallenge.end_date,
+    progress: 0,
     currentProgress: '0',
     goal: backendChallenge.goal,
-    active: !backendChallenge.completed,
+    active: isChallengeActive(backendChallenge.start_date, backendChallenge.end_date),
     contract_address: backendChallenge.contract_address,
     participantsList: backendChallenge.participants,
   };
