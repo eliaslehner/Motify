@@ -1,0 +1,30 @@
+{
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  },
+  "baseBuilder": {
+    "allowedAddresses": [""]
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "Motify",
+    "homeUrl": "https://your-domain.com",
+    "iconUrl": "https://your-domain.com/favicon.ico",
+    "splashImageUrl": "https://your-domain.com/placeholder.svg",
+    "splashBackgroundColor": "#000000",
+    "webhookUrl": "",
+    "subtitle": "Transform goals into verifiable challenges",
+    "description": "Transform your goals into verifiable challenges with financial accountability. Stake USDC, achieve your goals, or donate to charity.",
+    "screenshotUrls": [],
+    "primaryCategory": "social",
+    "tags": ["challenge", "goals", "accountability", "crypto"],
+    "heroImageUrl": "https://your-domain.com/placeholder.svg",
+    "tagline": "Challenge yourself with real stakes",
+    "ogTitle": "Motify - Challenge Yourself with Real Stakes",
+    "ogDescription": "Transform your goals into verifiable challenges with financial accountability. Stake USDC, achieve your goals, or donate to charity.",
+    "ogImageUrl": "https://lovable.dev/opengraph-image-p98pqg.png",
+    "noindex": true
+  }
+}
