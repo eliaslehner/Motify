@@ -312,7 +312,7 @@ const ChallengeDetail = () => {
               <img 
                 src="/strava_logo.svg" 
                 alt="Strava API" 
-                className="h-12 w-auto max-w-[120px] object-contain"
+                className="h-12 w-12 rounded-full object-cover"
               />
             </div>
           </div>
