@@ -96,9 +96,30 @@ const Home = () => {
                   <Link key={challenge.id} to={`/challenge/${challenge.id}`} className="block">
                     <Card className="p-4 hover:shadow-md transition-all cursor-pointer bg-gradient-card border-border">
                       <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
+                        <div className="flex-1 mr-4">
                           <h3 className="font-semibold text-lg mb-1">{challenge.title}</h3>
-                          <p className="text-sm text-muted-foreground">{challenge.duration}</p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex flex-col gap-2">
+                              <p className="text-sm text-muted-foreground">{challenge.duration}</p>
+                              <div className="flex items-center gap-4 text-sm">
+                                <div className="flex items-center gap-1">
+                                  <Users className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-foreground font-medium">{challenge.participants}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Coins className="h-4 w-4 text-primary" />
+                                  <span className="text-foreground font-medium">{challenge.stake} USDC</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center h-full">
+                              <img 
+                                src="/strava_logo.svg" 
+                                alt="Strava" 
+                                className="h-12 w-auto object-contain"
+                              />
+                            </div>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           {challenge.active && (
@@ -111,26 +132,6 @@ const Home = () => {
                               <Check className="h-4 w-4" />
                             </div>
                           )}
-                        </div>
-                      </div>
-                      
-                      {/* Strava Logo */}
-                      <div className="mb-3">
-                        <img 
-                          src="/strava_logo.svg" 
-                          alt="Strava" 
-                          className="h-6 w-auto object-contain"
-                        />
-                      </div>
-                      
-                      <div className="flex items-center gap-4 text-sm">
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-foreground font-medium">{challenge.participants}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Coins className="h-4 w-4 text-primary" />
-                          <span className="text-foreground font-medium">{challenge.stake} USDC</span>
                         </div>
                       </div>
                     </Card>
@@ -169,9 +170,30 @@ const Home = () => {
                   <Link key={challenge.id} to={`/challenge/${challenge.id}`} className="block">
                     <Card className="p-4 hover:shadow-md transition-all cursor-pointer bg-gradient-card border-border">
                       <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
+                        <div className="flex-1 mr-4">
                           <h3 className="font-semibold text-lg mb-1">{challenge.title}</h3>
-                          <p className="text-sm text-muted-foreground">{challenge.duration}</p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex flex-col gap-2">
+                              <p className="text-sm text-muted-foreground">{challenge.duration}</p>
+                              <div className="flex items-center gap-4 text-sm">
+                                <div className="flex items-center gap-1">
+                                  <Users className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-foreground font-medium">{challenge.participants}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Coins className="h-4 w-4 text-primary" />
+                                  <span className="text-foreground font-medium">{challenge.stake} USDC</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center h-full">
+                              <img 
+                                src="/strava_logo.svg" 
+                                alt="Strava" 
+                                className="h-12 w-auto object-contain"
+                              />
+                            </div>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           {challenge.active && (
@@ -184,26 +206,6 @@ const Home = () => {
                               <Check className="h-4 w-4" />
                             </div>
                           )}
-                        </div>
-                      </div>
-                      
-                      {/* Strava Logo */}
-                      <div className="mb-3">
-                        <img 
-                          src="/strava_logo.svg" 
-                          alt="Strava" 
-                          className="h-6 w-auto object-contain"
-                        />
-                      </div>
-                      
-                      <div className="flex items-center gap-4 text-sm">
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-foreground font-medium">{challenge.participants}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Coins className="h-4 w-4 text-primary" />
-                          <span className="text-foreground font-medium">{challenge.stake} USDC</span>
                         </div>
                       </div>
                     </Card>
