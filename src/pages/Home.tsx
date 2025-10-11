@@ -45,7 +45,11 @@ const Home = () => {
           <h1 className="text-2xl font-bold">Home</h1>
           <Link to="/profile">
             <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
-              <AvatarImage src={user?.pfpUrl || "/placeholder.svg"} alt={user?.displayName || "Profile"} />
+              <AvatarImage 
+                src={user?.pfpUrl || "/placeholder.svg"} 
+                alt={user?.displayName || "Profile"}
+                className="object-cover"
+              />
               <AvatarFallback>
                 {user?.displayName?.substring(0, 2).toUpperCase() || "U"}
               </AvatarFallback>
