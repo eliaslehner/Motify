@@ -11,7 +11,7 @@
     "version": "1",
     "name": "Motify",
     "homeUrl": "https://motify-nine.vercel.app",
-    "iconUrl": "https://motify-nine.vercel.app/favicon.ico",
+    "iconUrl": "https://motify-nine.vercel.app/favicon.png",
     "splashImageUrl": "https://motify-nine.vercel.app/placeholder.svg",
     "splashBackgroundColor": "#000000",
     "subtitle": "Challenges yourself",
@@ -19,11 +19,11 @@
     "screenshotUrls": [],
     "primaryCategory": "social",
     "tags": ["challenge", "goals", "accountability", "crypto"],
-    "heroImageUrl": "https://motify-nine.vercel.app/placeholder.svg",
+    "heroImageUrl": "https://motify-nine.vercel.app/cardImage.png",
     "tagline": "Challenge yourself",
     "ogTitle": "Motify",
     "ogDescription": "Transform your goals into verifiable challenges.",
-    "ogImageUrl": "https://lovable.dev/opengraph-image-p98pqg.png",
+    "ogImageUrl": "https://motify-nine.vercel.app/cardImage.png",
     "noindex": true
   }
 }
