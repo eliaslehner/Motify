@@ -5,15 +5,15 @@
     "signature": "MHhmMTJiODRhYzI4NmVlOGVhM2Y0MzFmNDZlYzVlNDMzNzQ4YjdiMzQ5NmExNTFiZGNhOWQ4MmEyYmJlMjllYzM0NzdmMzg1MGE5MDhiZDJhZjA0MmRhOWYzNGVkZjNiNDg3NzRhYTRhODkyMzM1MzQ5MTFkMzFjMDBmZmY5OTE2MDFi"
   },
   "baseBuilder": {
-    "allowedAddresses": ["0xD919790B73d45527b8a63d0288049C5f235D5b11", "0x478134C02E8E7Bb42855394F2587fC541A41B928"]
+    "allowedAddresses": ["0xD919790B73d45527b8a63d0288049C5f235D5b11", "0x478134C02E8E7Bb42855394F2587fC541A41B928","0x94cEB2273c0482EA6dBf1C78B34226BE7dB1eEb8"]
   },
   "miniapp": {
     "version": "1",
     "name": "Motify",
     "homeUrl": "https://motify-nine.vercel.app",
     "iconUrl": "https://motify-nine.vercel.app/favicon.png",
-    "splashImageUrl": "https://motify-nine.vercel.app/placeholder.svg",
-    "splashBackgroundColor": "#000000",
+    "splashImageUrl": "https://motify-nine.vercel.app/splashImage.svg",
+    "splashBackgroundColor": "#FDF7EC",
     "subtitle": "Challenges yourself",
     "description": "Transform your goals into verifiable challenges with financial accountability. Stake USDC, achieve your goals, or donate to charity.",
     "screenshotUrls": [],
