@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, User, TrendingUp, Users, Coins } from "lucide-react";
+import { Plus, Users, Coins } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService, Challenge } from "@/services/api";
+import { toast } from "sonner";
 
 const Home = () => {
   const [activeTab, setActiveTab] = useState("all");
-  const { user, wallet, isLoading } = useAuth();
+  const { user, wallet } = useAuth();
   const [allChallenges, setAllChallenges] = useState<Challenge[]>([]);
   const [userChallenges, setUserChallenges] = useState<Challenge[]>([]);
   const [loadingChallenges, setLoadingChallenges] = useState(true);
@@ -32,6 +33,7 @@ const Home = () => {
       }
     } catch (error) {
       console.error('Failed to load challenges:', error);
+      toast.error('Failed to load challenges');
     } finally {
       setLoadingChallenges(false);
     }

@@ -1,36 +1,135 @@
-import { ArrowLeft, Calendar, DollarSign, Users, Trophy, Target } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, Calendar, DollarSign, Users, Trophy, Target, Loader2 } from "lucide-react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useState, useEffect } from "react";
+import { apiService, Challenge, ChallengeProgress } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const ChallengeDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { wallet } = useAuth();
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [progress, setProgress] = useState<ChallengeProgress | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isJoining, setIsJoining] = useState(false);
+  const [joinAmount, setJoinAmount] = useState("");
+  const [showJoinDialog, setShowJoinDialog] = useState(false);
 
-  // Mock data
-  const challenge = {
-    title: "Run 50km This Month",
-    description: "Challenge yourself to run 50 kilometers over the next 30 days. Track your progress through Strava integration and prove your commitment!",
-    stake: 100,
-    participants: 12,
-    duration: "15 days left",
-    startDate: "Jan 1, 2025",
-    endDate: "Jan 31, 2025",
-    progress: 45,
-    currentProgress: "22.5 km",
-    goal: "50 km",
-    active: true,
-    isParticipating: false, // Set to true if user is already in this challenge
+  useEffect(() => {
+    loadChallenge();
+  }, [id, wallet?.address]);
+
+  const loadChallenge = async () => {
+    if (!id) return;
+
+    try {
+      setLoading(true);
+      const challengeData = await apiService.getChallenge(parseInt(id));
+      
+      if (!challengeData) {
+        toast.error("Challenge not found");
+        navigate("/");
+        return;
+      }
+
+      setChallenge(challengeData);
+
+      // Load progress if user is participating
+      if (wallet?.address && apiService.isUserParticipating(challengeData, wallet.address)) {
+        const progressData = await apiService.getChallengeProgress(
+          challengeData.id,
+          wallet.address
+        );
+        setProgress(progressData);
+      }
+    } catch (error) {
+      console.error("Error loading challenge:", error);
+      toast.error("Failed to load challenge");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const participants = [
-    { name: "Alice", avatar: "/placeholder.svg", progress: 65 },
-    { name: "Bob", avatar: "/placeholder.svg", progress: 45 },
-    { name: "Charlie", avatar: "/placeholder.svg", progress: 30 },
-    { name: "Diana", avatar: "/placeholder.svg", progress: 80 },
-  ];
+  const handleJoinChallenge = async () => {
+    if (!challenge || !wallet?.isConnected) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    const amount = parseFloat(joinAmount);
+    if (isNaN(amount) || amount < 1) {
+      toast.error("Minimum stake amount is $1 USD");
+      return;
+    }
+
+    setIsJoining(true);
+
+    try {
+      await apiService.joinChallenge(challenge.id, wallet.address, amount);
+      toast.success("Successfully joined the challenge!");
+      setShowJoinDialog(false);
+      loadChallenge(); // Reload to update participant list
+    } catch (error: any) {
+      console.error("Error joining challenge:", error);
+      toast.error(error.message || "Failed to join challenge");
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading challenge...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!challenge) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 text-center bg-gradient-card border-border">
+          <p className="text-muted-foreground mb-4">Challenge not found</p>
+          <Link to="/">
+            <Button>Go Home</Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
+
+  const isParticipating = wallet?.address 
+    ? apiService.isUserParticipating(challenge, wallet.address)
+    : false;
+  const userStake = wallet?.address 
+    ? apiService.getUserStakeAmount(challenge, wallet.address)
+    : 0;
+
+  // Calculate progress percentage from progress data
+  let progressPercentage = 0;
+  if (progress?.progress && progress.progress.length > 0) {
+    const achievedDays = progress.progress.filter(day => day.achieved).length;
+    progressPercentage = Math.round((achievedDays / progress.progress.length) * 100);
+  }
 
   return (
     <div className="min-h-screen bg-background pb-6">
@@ -85,21 +184,65 @@ const ChallengeDetail = () => {
           </div>
         </Card>
 
-        {/* Progress Card */}
-        <Card className="p-6 bg-gradient-card border-border">
-          <div className="flex items-center gap-2 mb-4">
-            <Target className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold text-lg">Your Progress</h3>
-          </div>
-          <div className="space-y-2 mb-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Current</span>
-              <span className="font-medium">{challenge.currentProgress} / {challenge.goal}</span>
+        {/* Progress Card - Only show if participating */}
+        {isParticipating && (
+          <Card className="p-6 bg-gradient-card border-border">
+            <div className="flex items-center gap-2 mb-4">
+              <Target className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-lg">Your Progress</h3>
             </div>
-            <Progress value={challenge.progress} className="h-3" />
-          </div>
-          <p className="text-sm text-muted-foreground">{challenge.progress}% complete</p>
-        </Card>
+            {progress ? (
+              <>
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Days Completed</span>
+                    <span className="font-medium">
+                      {progress.progress.filter(d => d.achieved).length} / {progress.progress.length}
+                    </span>
+                  </div>
+                  <Progress value={progressPercentage} className="h-3" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">{progressPercentage}% complete</p>
+                  {progress.currentlySucceeded ? (
+                    <Badge variant="secondary" className="bg-success-light text-success">
+                      On Track
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-warning/20 text-warning">
+                      Behind
+                    </Badge>
+                  )}
+                </div>
+                
+                {/* Daily Progress Breakdown */}
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm font-medium">Daily Progress</p>
+                  <div className="grid grid-cols-7 gap-1">
+                    {progress.progress.map((day, index) => (
+                      <div
+                        key={index}
+                        className={`h-8 rounded flex items-center justify-center text-xs ${
+                          day.achieved 
+                            ? 'bg-success text-white' 
+                            : 'bg-muted text-muted-foreground'
+                        }`}
+                        title={`${day.date}: ${day.achieved ? 'Achieved' : 'Not achieved'}${day.value ? ` (${day.value})` : ''}`}
+                      >
+                        {index + 1}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Loading progress...</p>
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* Timeline Card */}
         <Card className="p-6 bg-gradient-card border-border">
@@ -126,36 +269,91 @@ const ChallengeDetail = () => {
         {/* Participants Card */}
         <Card className="p-6 bg-gradient-card border-border">
           <div className="flex items-center gap-2 mb-4">
-            <Trophy className="h-5 w-5 text-success" />
-            <h3 className="font-semibold text-lg">Leaderboard</h3>
+            <Users className="h-5 w-5 text-success" />
+            <h3 className="font-semibold text-lg">Participants</h3>
           </div>
-          <div className="space-y-4">
-            {participants.map((participant, index) => (
-              <div key={index} className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={participant.avatar} alt={participant.name} />
-                  <AvatarFallback>{participant.name[0]}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <p className="font-medium">{participant.name}</p>
-                  <Progress value={participant.progress} className="h-2 mt-1" />
+          <div className="space-y-3">
+            {challenge.participantsList.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No participants yet. Be the first to join!
+              </p>
+            ) : (
+              challenge.participantsList.map((participant, index) => (
+                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-background/50">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback>
+                        {participant.walletAddress.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium font-mono text-sm">
+                        {participant.walletAddress.substring(0, 6)}...
+                        {participant.walletAddress.substring(participant.walletAddress.length - 4)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">${participant.amountUsd}</p>
+                    <p className="text-xs text-muted-foreground">staked</p>
+                  </div>
                 </div>
-                <span className="text-sm font-medium text-muted-foreground">
-                  {participant.progress}%
-                </span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
 
         {/* Action Button - Only show if user is not participating */}
-        {!challenge.isParticipating && (
-          <Button
-            className="w-full bg-gradient-primary hover:opacity-90"
-            size="lg"
-          >
-            Join Challenge
-          </Button>
+        {!isParticipating && wallet?.isConnected && (
+          <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
+            <DialogTrigger asChild>
+              <Button
+                className="w-full bg-gradient-primary hover:opacity-90"
+                size="lg"
+              >
+                Join Challenge
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-gradient-card">
+              <DialogHeader>
+                <DialogTitle>Join Challenge</DialogTitle>
+                <DialogDescription>
+                  Enter the amount you want to stake for this challenge. Minimum $1 USD.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Stake Amount (USD)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    placeholder="100"
+                    min="1"
+                    step="0.01"
+                    value={joinAmount}
+                    onChange={(e) => setJoinAmount(e.target.value)}
+                    className="bg-background"
+                  />
+                </div>
+                <Button
+                  onClick={handleJoinChallenge}
+                  disabled={isJoining}
+                  className="w-full bg-gradient-primary"
+                  size="lg"
+                >
+                  {isJoining ? "Joining..." : "Confirm and Join"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {isParticipating && (
+          <Card className="p-4 bg-success/10 border-success">
+            <p className="text-center text-success font-medium">
+              You're participating with ${userStake} staked
+            </p>
+          </Card>
         )}
       </main>
     </div>
