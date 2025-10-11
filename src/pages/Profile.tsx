@@ -128,7 +128,11 @@ const Profile = () => {
             {/* Profile Info */}
             <div className="flex items-center gap-4 mb-6">
               <Avatar className="h-24 w-24 border-2 border-border">
-                <AvatarImage src={user?.pfpUrl || "/placeholder.svg"} alt={user?.displayName || "Profile"} />
+                <AvatarImage 
+                  src={user?.pfpUrl || "/placeholder.svg"} 
+                  alt={user?.displayName || "Profile"}
+                  className="object-cover"
+                />
                 <AvatarFallback className="text-2xl">
                   {user?.displayName?.substring(0, 2).toUpperCase() || "U"}
                 </AvatarFallback>
