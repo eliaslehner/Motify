@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiService } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { CONTRACT_ADDRESS, MOTIFY_ABI } from "@/contract";
 
 const CreateChallenge = () => {
   const navigate = useNavigate();
@@ -26,6 +28,12 @@ const CreateChallenge = () => {
     contractAddress: "",
   });
 
+  // Wagmi hooks for contract interaction
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
@@ -33,9 +41,68 @@ const CreateChallenge = () => {
     });
   };
 
+  // Handle transaction errors
+  useEffect(() => {
+    if (error) {
+      console.error("Transaction error:", error);
+      toast.error("Transaction failed: " + error.message);
+      setIsSubmitting(false);
+    }
+  }, [error]);
+
+  // Handle successful transaction confirmation
+  useEffect(() => {
+    if (isConfirmed && hash) {
+      toast.success("Challenge created on blockchain!");
+      // Now save to backend
+      saveToBackend();
+    }
+  }, [isConfirmed, hash]);
+
+  const saveToBackend = async () => {
+    try {
+      const startDate = new Date(formData.startDate);
+      const endDate = new Date(formData.endDate);
+
+      let contractAddress = formData.contractAddress;
+      if (beneficiary !== "friend") {
+        const charityAddresses: Record<string, string> = {
+          charity1: "0x1111111111111111111111111111111111111111",
+          charity2: "0x2222222222222222222222222222222222222222",
+          charity3: "0x3333333333333333333333333333333333333333",
+        };
+        contractAddress = charityAddresses[beneficiary] || contractAddress;
+      }
+
+      const challenge = await apiService.createChallenge({
+        name: formData.name,
+        description: formData.description,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        contract_address: contractAddress,
+        goal: formData.goal,
+      });
+
+      const wagerAmount = parseFloat(formData.wager);
+      if (wagerAmount >= 1 && wallet?.address) {
+        await apiService.joinChallenge(challenge.id, wallet.address, wagerAmount);
+        toast.success(`Challenge saved and joined with $${wagerAmount}!`);
+      } else {
+        toast.success("Challenge saved successfully!");
+      }
+
+      navigate("/");
+    } catch (error) {
+      console.error("Error saving challenge to backend:", error);
+      toast.error("Challenge created on blockchain but failed to save locally.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!wallet?.address) {
       toast.error("Wallet not connected. Please refresh and try again.");
       return;
@@ -56,45 +123,49 @@ const CreateChallenge = () => {
       return;
     }
 
+    // Validate wager amount
+    const wagerAmount = parseFloat(formData.wager);
+    if (wagerAmount < 0.00001) {
+      toast.error("Minimum wager is 0.00001 ETH");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // Prepare contract address based on beneficiary selection
-      let contractAddress = formData.contractAddress;
+      // Determine charity address
+      let charityAddress = formData.contractAddress;
       if (beneficiary !== "friend") {
-        // Use predefined charity addresses
         const charityAddresses: Record<string, string> = {
-          charity1: "0x1111111111111111111111111111111111111111", // Red Cross
-          charity2: "0x2222222222222222222222222222222222222222", // UNICEF
-          charity3: "0x3333333333333333333333333333333333333333", // WWF
+          charity1: "0x1111111111111111111111111111111111111111",
+          charity2: "0x2222222222222222222222222222222222222222",
+          charity3: "0x3333333333333333333333333333333333333333",
         };
-        contractAddress = charityAddresses[beneficiary] || contractAddress;
+        charityAddress = charityAddresses[beneficiary] || charityAddress;
       }
 
-      // Create challenge via API (no blockchain transaction yet)
-      const challenge = await apiService.createChallenge({
-        name: formData.name,
-        description: formData.description,
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-        contract_address: contractAddress,
-        goal: formData.goal,
-      });
-
-      // Automatically join the challenge with the wager amount
-      const wagerAmount = parseFloat(formData.wager);
-      if (wagerAmount >= 1 && wallet.address) {
-        await apiService.joinChallenge(challenge.id, wallet.address, wagerAmount);
-        toast.success(`Challenge created and joined with $${wagerAmount}!`);
-      } else {
-        toast.success("Challenge created successfully!");
+      if (!charityAddress || charityAddress === "") {
+        toast.error("Please provide a valid beneficiary address");
+        setIsSubmitting(false);
+        return;
       }
 
-      navigate("/");
+      // Convert end date to Unix timestamp (in seconds)
+      const endTimeTimestamp = Math.floor(endDate.getTime() / 1000);
+
+      // Call the smart contract
+      toast.info("Please confirm the transaction in your wallet...");
+
+      writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: MOTIFY_ABI,
+        functionName: "createChallenge",
+        args: [charityAddress, BigInt(endTimeTimestamp)],
+      } as any);
+
     } catch (error) {
       console.error("Error creating challenge:", error);
       toast.error("Failed to create challenge. Please try again.");
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -171,20 +242,20 @@ const CreateChallenge = () => {
 
             {/* Wager Amount */}
             <div className="space-y-2">
-              <Label htmlFor="wager">Your Wager Amount (USD)</Label>
+              <Label htmlFor="wager">Your Wager Amount (ETH)</Label>
               <Input
                 id="wager"
                 type="number"
-                placeholder="100"
-                min="1"
-                step="0.01"
+                placeholder="0.01"
+                min="0.00001"
+                step="0.00001"
                 required
                 className="bg-background"
                 value={formData.wager}
                 onChange={handleInputChange}
               />
               <p className="text-xs text-muted-foreground">
-                Minimum $1 USD. Amount tracked off-chain (blockchain integration coming soon).
+                Minimum 0.00001 ETH. Your stake will be locked in the smart contract.
               </p>
             </div>
 
@@ -240,10 +311,22 @@ const CreateChallenge = () => {
               type="submit"
               className="w-full bg-gradient-primary hover:opacity-90"
               size="lg"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isPending || isConfirming}
             >
-              {isSubmitting ? "Creating..." : "Create Challenge"}
+              {isPending
+                ? "Confirm in Wallet..."
+                : isConfirming
+                  ? "Confirming Transaction..."
+                  : isSubmitting
+                    ? "Saving..."
+                    : "Create Challenge"}
             </Button>
+
+            {hash && (
+              <p className="text-xs text-center text-muted-foreground">
+                Transaction: {hash.slice(0, 10)}...{hash.slice(-8)}
+              </p>
+            )}
           </form>
         </Card>
       </main>
