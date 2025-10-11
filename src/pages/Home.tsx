@@ -9,10 +9,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService, Challenge } from "@/services/api";
 import { toast } from "sonner";
+import { WebLogin } from "@/components/WebLogin";
 
 const Home = () => {
   const [activeTab, setActiveTab] = useState("all");
-  const { user, wallet } = useAuth();
+  const { user, wallet, isLoading: authLoading, isInMiniApp, isAuthenticated } = useAuth();
   const [allChallenges, setAllChallenges] = useState<Challenge[]>([]);
   const [userChallenges, setUserChallenges] = useState<Challenge[]>([]);
   const [loadingChallenges, setLoadingChallenges] = useState(true);
@@ -39,9 +40,12 @@ const Home = () => {
     }
   };
 
+  if (!isInMiniApp && !isAuthenticated && !authLoading) {
+    return <WebLogin />;
+  }
+
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Home</h1>
@@ -60,7 +64,6 @@ const Home = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -98,7 +101,6 @@ const Home = () => {
                         </Badge>
                       )}
                     </div>
-
                     <div className="flex items-center gap-4 text-sm">
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4 text-muted-foreground" />
@@ -149,7 +151,6 @@ const Home = () => {
                         </Badge>
                       )}
                     </div>
-
                     <div className="flex items-center gap-4 text-sm">
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4 text-muted-foreground" />
@@ -168,7 +169,6 @@ const Home = () => {
         </Tabs>
       </main>
 
-      {/* Floating Action Button */}
       <Link to="/create">
         <Button
           size="lg"

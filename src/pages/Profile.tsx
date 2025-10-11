@@ -38,67 +38,67 @@ const Profile = () => {
     }
   };
 
-  const stats = [
+  const stats = userStats ? [
     {
       icon: Trophy,
-      label: "Completed",
-      value: "12",
+      label: "Succeeded",
+      value: userStats.totalChallengesSucceeded.toString(),
       color: "text-success",
       bgColor: "bg-success-light",
     },
     {
       icon: Target,
-      label: "Active",
-      value: "3",
+      label: "Participated",
+      value: userStats.totalChallengesParticipated.toString(),
       color: "text-primary",
       bgColor: "bg-primary/10",
     },
     {
       icon: DollarSign,
-      label: "Total Staked",
-      value: "$450",
+      label: "Total Contributed",
+      value: `$${userStats.totalAmountContributedUsd.toFixed(2)}`,
       color: "text-warning",
       bgColor: "bg-warning-light",
     },
     {
       icon: TrendingUp,
       label: "Success Rate",
-      value: "75%",
+      value: userStats.totalChallengesParticipated > 0 
+        ? `${Math.round((userStats.totalChallengesSucceeded / userStats.totalChallengesParticipated) * 100)}%`
+        : "0%",
+      color: "text-accent",
+      bgColor: "bg-accent/10",
+    },
+  ] : [
+    {
+      icon: Trophy,
+      label: "Succeeded",
+      value: "0",
+      color: "text-success",
+      bgColor: "bg-success-light",
+    },
+    {
+      icon: Target,
+      label: "Participated",
+      value: "0",
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      icon: DollarSign,
+      label: "Total Contributed",
+      value: "$0",
+      color: "text-warning",
+      bgColor: "bg-warning-light",
+    },
+    {
+      icon: TrendingUp,
+      label: "Success Rate",
+      value: "0%",
       color: "text-accent",
       bgColor: "bg-accent/10",
     },
   ];
-
-  const statCards = userStats ? [
-    {
-      icon: Trophy,
-      label: "Completed",
-      value: userStats.completed.toString(),
-      color: "text-success",
-      bgColor: "bg-success-light",
-    },
-    {
-      icon: Target,
-      label: "Active",
-      value: userStats.active.toString(),
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-    },
-    {
-      icon: DollarSign,
-      label: "Total Staked",
-      value: `$${userStats.totalStaked}`,
-      color: "text-warning",
-      bgColor: "bg-warning-light",
-    },
-    {
-      icon: TrendingUp,
-      label: "Success Rate",
-      value: `${userStats.successRate}%`,
-      color: "text-accent",
-      bgColor: "bg-accent/10",
-    },
-  ] : [];
 
   return (
     <div className="min-h-screen bg-background">

@@ -36,8 +36,23 @@ const CreateChallenge = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!wallet?.isConnected) {
-      toast.error("Please connect your wallet first");
+    if (!wallet?.address) {
+      toast.error("Wallet not connected. Please refresh and try again.");
+      return;
+    }
+
+    // Validate dates
+    const startDate = new Date(formData.startDate);
+    const endDate = new Date(formData.endDate);
+    const now = new Date();
+
+    if (startDate < now) {
+      toast.error("Start date must be in the future");
+      return;
+    }
+
+    if (endDate <= startDate) {
+      toast.error("End date must be after start date");
       return;
     }
 
@@ -56,23 +71,25 @@ const CreateChallenge = () => {
         contractAddress = charityAddresses[beneficiary] || contractAddress;
       }
 
-      // Create challenge via API
+      // Create challenge via API (no blockchain transaction yet)
       const challenge = await apiService.createChallenge({
         name: formData.name,
         description: formData.description,
-        start_date: new Date(formData.startDate).toISOString(),
-        end_date: new Date(formData.endDate).toISOString(),
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
         contract_address: contractAddress,
         goal: formData.goal,
       });
 
       // Automatically join the challenge with the wager amount
       const wagerAmount = parseFloat(formData.wager);
-      if (wagerAmount >= 1) {
+      if (wagerAmount >= 1 && wallet.address) {
         await apiService.joinChallenge(challenge.id, wallet.address, wagerAmount);
+        toast.success(`Challenge created and joined with $${wagerAmount}!`);
+      } else {
+        toast.success("Challenge created successfully!");
       }
 
-      toast.success("Challenge created successfully!");
       navigate("/");
     } catch (error) {
       console.error("Error creating challenge:", error);
@@ -167,7 +184,7 @@ const CreateChallenge = () => {
                 onChange={handleInputChange}
               />
               <p className="text-xs text-muted-foreground">
-                Minimum $1 USD. This amount will be staked when you join.
+                Minimum $1 USD. Amount tracked off-chain (blockchain integration coming soon).
               </p>
             </div>
 

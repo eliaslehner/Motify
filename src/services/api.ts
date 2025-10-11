@@ -38,10 +38,19 @@ export interface Challenge {
   }>;
 }
 
+// User stats interface matching backend response
 export interface UserStats {
   totalChallengesParticipated: number;
   totalChallengesSucceeded: number;
   totalAmountContributedUsd: number;
+}
+
+// Calculated stats for UI display
+export interface DisplayUserStats extends UserStats {
+  completed: number;
+  active: number;
+  totalStaked: number;
+  successRate: number;
 }
 
 export interface Activity {
