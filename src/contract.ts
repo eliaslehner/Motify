@@ -21,7 +21,7 @@ export type MotifyABI = typeof contractABI;
  * - Frontend starts at 1, blockchain starts at 5: set to 4
  * - Both start at same number: set to 0
  */
-export const CHALLENGE_ID_OFFSET = 4;
+export const CHALLENGE_ID_OFFSET = 7;
 
 /**
  * Helper function to convert frontend challenge ID to blockchain challenge ID

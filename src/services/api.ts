@@ -79,12 +79,12 @@ function formatDuration(startDate: string, endDate: string): string {
   const now = new Date();
   const end = new Date(endDate);
   const start = new Date(startDate);
-  
+
   if (now < start) {
     const msUntilStart = start.getTime() - now.getTime();
     const daysUntilStart = Math.ceil(msUntilStart / (1000 * 60 * 60 * 24));
     const hoursUntilStart = Math.ceil(msUntilStart / (1000 * 60 * 60));
-    
+
     if (daysUntilStart > 1) {
       return `Starts in ${daysUntilStart} day${daysUntilStart !== 1 ? 's' : ''}`;
     } else if (hoursUntilStart > 1) {
@@ -94,15 +94,15 @@ function formatDuration(startDate: string, endDate: string): string {
       return `Starts in ${minutesUntilStart} minute${minutesUntilStart !== 1 ? 's' : ''}`;
     }
   }
-  
+
   if (now > end) {
     return 'Completed';
   }
-  
+
   const msLeft = end.getTime() - now.getTime();
   const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
   const hoursLeft = Math.ceil(msLeft / (1000 * 60 * 60));
-  
+
   if (daysLeft > 1) {
     return `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`;
   } else if (hoursLeft > 1) {
@@ -116,9 +116,9 @@ function formatDuration(startDate: string, endDate: string): string {
 // Helper function to format date for display while preserving original datetime
 function formatDisplayDate(dateString: string): string {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
@@ -150,7 +150,7 @@ export function isChallengeUpcoming(startDate: string): boolean {
 // Convert backend challenge to frontend format
 function mapBackendToFrontend(backendChallenge: BackendChallenge): Challenge {
   const totalStake = backendChallenge.participants.reduce((sum, p) => sum + p.amountUsd, 0);
-  
+
   return {
     id: backendChallenge.id,
     title: backendChallenge.name,
@@ -202,8 +202,8 @@ class ApiService {
     try {
       const allChallenges = await this.getChallenges();
       // Filter challenges where the user is a participant
-      return allChallenges.filter(challenge => 
-        challenge.participantsList.some(p => 
+      return allChallenges.filter(challenge =>
+        challenge.participantsList.some(p =>
           p.walletAddress.toLowerCase() === address.toLowerCase()
         )
       );
@@ -227,11 +227,11 @@ class ApiService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to create challenge');
       }
-      
+
       const backendChallenge: BackendChallenge = await response.json();
       return mapBackendToFrontend(backendChallenge);
     } catch (error) {
@@ -247,7 +247,7 @@ class ApiService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ walletAddress, amountUsd }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to join challenge');
@@ -265,11 +265,11 @@ class ApiService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ walletAddress, goal }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch challenge progress');
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error('Error fetching challenge progress:', error);
@@ -281,11 +281,11 @@ class ApiService {
   async getUserStats(address: string): Promise<UserStats> {
     try {
       const response = await fetch(`${API_URL}/users/${address}/stats`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch user stats');
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error('Error fetching user stats:', error);
@@ -304,14 +304,14 @@ class ApiService {
 
   // Check if user is participating in a challenge
   isUserParticipating(challenge: Challenge, walletAddress: string): boolean {
-    return challenge.participantsList.some(p => 
+    return challenge.participantsList.some(p =>
       p.walletAddress.toLowerCase() === walletAddress.toLowerCase()
     );
   }
 
   // Get user's stake amount in a challenge
   getUserStakeAmount(challenge: Challenge, walletAddress: string): number {
-    const participant = challenge.participantsList.find(p => 
+    const participant = challenge.participantsList.find(p =>
       p.walletAddress.toLowerCase() === walletAddress.toLowerCase()
     );
     return participant?.amountUsd || 0;
