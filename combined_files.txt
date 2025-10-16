@@ -1,0 +1,2456 @@
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\App.tsx ====================
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { sdk } from "@farcaster/miniapp-sdk";
+import { useEffect } from "react";
+import { OnchainProviders } from "@/providers/OnchainProviders";
+import { AuthProvider } from "@/contexts/AuthContext";
+import Home from "./pages/Home";
+import Profile from "./pages/Profile";
+import CreateChallenge from "./pages/CreateChallenge";
+import ChallengeDetail from "./pages/ChallengeDetail";
+import NotFound from "./pages/NotFound";
+
+const App = () => {
+  useEffect(() => {
+    sdk.actions.ready();
+  }, []);
+
+  return (
+    <OnchainProviders>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/create" element={<CreateChallenge />} />
+              <Route path="/challenge/:id" element={<ChallengeDetail />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </OnchainProviders>
+  );
+};
+
+export default App;
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\components\WalletStatus.tsx ====================
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { AlertCircle, Loader2 } from 'lucide-react';
+
+export function WalletStatus() {
+  const { user, wallet, isLoading, isAuthenticated, connectWallet } = useAuth();
+
+  if (isLoading) {
+    return (
+      <Card className="p-6 bg-gradient-card border-border">
+        <div className="flex items-center justify-center gap-2">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <p className="text-muted-foreground">Connecting to Base Account...</p>
+        </div>
+      </Card>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Card className="p-6 bg-gradient-card border-border">
+        <div className="flex items-center gap-3 mb-4">
+          <AlertCircle className="h-5 w-5 text-warning" />
+          <p className="text-foreground font-medium">No user detected</p>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          This Mini App works best when launched from the Base App.
+        </p>
+        <Button onClick={connectWallet} className="w-full">
+          Connect Manually
+        </Button>
+      </Card>
+    );
+  }
+
+  if (!wallet?.isConnected) {
+    return (
+      <Card className="p-6 bg-gradient-card border-border">
+        <div className="flex items-center gap-3 mb-4">
+          <AlertCircle className="h-5 w-5 text-warning" />
+          <p className="text-foreground font-medium">Wallet not connected</p>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Connect your wallet to create and join challenges.
+        </p>
+        <Button onClick={connectWallet} className="w-full bg-gradient-primary">
+          Connect Wallet
+        </Button>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-4 bg-gradient-card border-border">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">Connected as</p>
+          <p className="font-medium">{user.displayName}</p>
+          <p className="text-xs text-muted-foreground font-mono">
+            {wallet.address.substring(0, 6)}...{wallet.address.substring(wallet.address.length - 4)}
+          </p>
+        </div>
+        <div className="h-2 w-2 rounded-full bg-success animate-pulse"></div>
+      </div>
+    </Card>
+  );
+}
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\components\WebLogin.tsx ====================
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Wallet } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+
+export const WebLogin = () => {
+  const { connectWallet, isLoading } = useAuth();
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="p-8 max-w-md w-full bg-gradient-card border-border text-center">
+        <div className="mb-6">
+          <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4">
+            <Wallet className="h-10 w-10 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold mb-2">Welcome to Motify</h1>
+          <p className="text-muted-foreground">
+            Connect your wallet to start creating and joining challenges
+          </p>
+        </div>
+        
+        <Button
+          onClick={connectWallet}
+          disabled={isLoading}
+          size="lg"
+          className="w-full bg-gradient-primary hover:opacity-90"
+        >
+          {isLoading ? "Connecting..." : "Connect Wallet"}
+        </Button>
+        
+        <p className="text-xs text-muted-foreground mt-4">
+          We support Coinbase Wallet with Smart Wallet for a seamless experience
+        </p>
+      </Card>
+    </div>
+  );
+};
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\contexts\AuthContext.tsx ====================
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { sdk } from '@farcaster/miniapp-sdk';
+import { useAccount, useConnect } from 'wagmi';
+
+interface UserData {
+  fid: number;
+  username: string;
+  displayName: string;
+  pfpUrl: string;
+  bio?: string;
+}
+
+interface WalletData {
+  address: string;
+  balance?: string;
+  isConnected: boolean;
+}
+
+interface AuthContextType {
+  user: UserData | null;
+  wallet: WalletData | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  isInMiniApp: boolean;
+  connectWallet: () => Promise<void>;
+  disconnect: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<UserData | null>(null);
+  const [wallet, setWallet] = useState<WalletData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isInMiniApp, setIsInMiniApp] = useState(false);
+  
+  // Wagmi hooks for web wallet connection
+  const { address: wagmiAddress, isConnected: wagmiIsConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+
+  useEffect(() => {
+    initializeAuth();
+  }, []);
+
+  // Update wallet when wagmi connection changes (for web)
+  useEffect(() => {
+    if (!isInMiniApp && wagmiIsConnected && wagmiAddress) {
+      setWallet({
+        address: wagmiAddress,
+        isConnected: true,
+      });
+    }
+  }, [wagmiAddress, wagmiIsConnected, isInMiniApp]);
+
+  const initializeAuth = async () => {
+    try {
+      setIsLoading(true);
+
+      // Check if we're running inside the Base Mini App
+      const inMiniApp = await sdk.isInMiniApp();
+      setIsInMiniApp(inMiniApp);
+
+      if (inMiniApp) {
+        // Inside Base App - use Context API, auto-connect
+        const context = await sdk.context;
+        
+        if (context?.user) {
+          // Set user data from Farcaster context
+          setUser({
+            fid: context.user.fid,
+            username: context.user.username || 'user',
+            displayName: context.user.displayName || context.user.username || 'User',
+            pfpUrl: context.user.pfpUrl || '/placeholder.svg',
+            bio: (context.user as any).bio,
+          });
+
+          // Auto-connect wallet if available from Base Account
+          await connectWallet();
+        }
+      } else {
+        // On regular web - need to manually connect wallet
+        console.log('Running on web - wallet connection required');
+      }
+    } catch (error) {
+      console.error('Failed to initialize auth:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const connectWallet = async () => {
+    try {
+      if (isInMiniApp) {
+        // Get Base Account wallet from SDK (inside mini app)
+        const context = await sdk.context;
+        
+        // Check if we have wallet address from the client context
+        const clientContext = context?.client as any;
+        if (clientContext?.smartWalletAddress) {
+          setWallet({
+            address: clientContext.smartWalletAddress,
+            isConnected: true,
+          });
+        } else if (clientContext?.address) {
+          // Fallback to regular address if available
+          setWallet({
+            address: clientContext.address,
+            isConnected: true,
+          });
+        } else {
+          // No wallet address available yet
+          console.log('No wallet address found in context');
+          setWallet({
+            address: '',
+            isConnected: false,
+          });
+        }
+      } else {
+        // On web - use Coinbase Wallet connector
+        // Only trigger the connection, don't set wallet state here
+        // The useEffect will handle setting wallet state when wagmi connects
+        const coinbaseConnector = connectors.find((c) => c.id === 'coinbaseWalletSDK');
+        if (coinbaseConnector) {
+          connect({ connector: coinbaseConnector });
+        } else {
+          console.error('Coinbase Wallet connector not found');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+    }
+  };
+
+  const disconnect = () => {
+    setUser(null);
+    setWallet(null);
+  };
+
+  const isAuthenticated = isInMiniApp 
+    ? !!user && !!wallet?.isConnected 
+    : !!wallet?.isConnected;
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        wallet,
+        isAuthenticated,
+        isLoading,
+        isInMiniApp,
+        connectWallet,
+        disconnect,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\contract.ts ====================
+import contractABI from "../contract_abi.json";
+
+export const CONTRACT_ADDRESS = "0x2a0b1a2cd46ea76cb208fb42fc6d88518e5fcd6d" as const;
+export const MOTIFY_ABI = contractABI;
+export type MotifyABI = typeof contractABI;
+
+/**
+ * Challenge ID Offset Configuration
+ * 
+ * This offset is used to map frontend challenge IDs to blockchain challenge IDs.
+ * Formula: blockchainChallengeId = frontendChallengeId + CHALLENGE_ID_OFFSET
+ * 
+ * HOW TO SET THE CORRECT OFFSET:
+ * 1. Find a challenge that exists in both your frontend and blockchain
+ * 2. Note the frontend ID (e.g., 5) and blockchain ID (e.g., 3)
+ * 3. Calculate: CHALLENGE_ID_OFFSET = blockchainId - frontendId
+ *    Example: 3 - 5 = -2, so set CHALLENGE_ID_OFFSET = -2
+ * 
+ * Common scenarios:
+ * - Frontend starts at 1, blockchain starts at 0: set to -1
+ * - Frontend starts at 1, blockchain starts at 5: set to 4
+ * - Both start at same number: set to 0
+ */
+export const CHALLENGE_ID_OFFSET = 7;
+
+/**
+ * Helper function to convert frontend challenge ID to blockchain challenge ID
+ */
+export function toBlockchainChallengeId(frontendId: number): number {
+    return frontendId + CHALLENGE_ID_OFFSET;
+}
+
+/**
+ * Helper function to convert blockchain challenge ID to frontend challenge ID
+ */
+export function toFrontendChallengeId(blockchainId: number): number {
+    return blockchainId - CHALLENGE_ID_OFFSET;
+}
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\hooks\use-mobile.tsx ====================
+import * as React from "react";
+
+const MOBILE_BREAKPOINT = 768;
+
+export function useIsMobile() {
+  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
+
+  React.useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    const onChange = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+    mql.addEventListener("change", onChange);
+    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  return !!isMobile;
+}
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\hooks\use-toast.ts ====================
+import * as React from "react";
+
+import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
+
+const TOAST_LIMIT = 1;
+const TOAST_REMOVE_DELAY = 1000000;
+
+type ToasterToast = ToastProps & {
+  id: string;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  action?: ToastActionElement;
+};
+
+const actionTypes = {
+  ADD_TOAST: "ADD_TOAST",
+  UPDATE_TOAST: "UPDATE_TOAST",
+  DISMISS_TOAST: "DISMISS_TOAST",
+  REMOVE_TOAST: "REMOVE_TOAST",
+} as const;
+
+let count = 0;
+
+function genId() {
+  count = (count + 1) % Number.MAX_SAFE_INTEGER;
+  return count.toString();
+}
+
+type ActionType = typeof actionTypes;
+
+type Action =
+  | {
+      type: ActionType["ADD_TOAST"];
+      toast: ToasterToast;
+    }
+  | {
+      type: ActionType["UPDATE_TOAST"];
+      toast: Partial<ToasterToast>;
+    }
+  | {
+      type: ActionType["DISMISS_TOAST"];
+      toastId?: ToasterToast["id"];
+    }
+  | {
+      type: ActionType["REMOVE_TOAST"];
+      toastId?: ToasterToast["id"];
+    };
+
+interface State {
+  toasts: ToasterToast[];
+}
+
+const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
+const addToRemoveQueue = (toastId: string) => {
+  if (toastTimeouts.has(toastId)) {
+    return;
+  }
+
+  const timeout = setTimeout(() => {
+    toastTimeouts.delete(toastId);
+    dispatch({
+      type: "REMOVE_TOAST",
+      toastId: toastId,
+    });
+  }, TOAST_REMOVE_DELAY);
+
+  toastTimeouts.set(toastId, timeout);
+};
+
+export const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case "ADD_TOAST":
+      return {
+        ...state,
+        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+      };
+
+    case "UPDATE_TOAST":
+      return {
+        ...state,
+        toasts: state.toasts.map((t) => (t.id === action.toast.id ? { ...t, ...action.toast } : t)),
+      };
+
+    case "DISMISS_TOAST": {
+      const { toastId } = action;
+
+      // ! Side effects ! - This could be extracted into a dismissToast() action,
+      // but I'll keep it here for simplicity
+      if (toastId) {
+        addToRemoveQueue(toastId);
+      } else {
+        state.toasts.forEach((toast) => {
+          addToRemoveQueue(toast.id);
+        });
+      }
+
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === toastId || toastId === undefined
+            ? {
+                ...t,
+                open: false,
+              }
+            : t,
+        ),
+      };
+    }
+    case "REMOVE_TOAST":
+      if (action.toastId === undefined) {
+        return {
+          ...state,
+          toasts: [],
+        };
+      }
+      return {
+        ...state,
+        toasts: state.toasts.filter((t) => t.id !== action.toastId),
+      };
+  }
+};
+
+const listeners: Array<(state: State) => void> = [];
+
+let memoryState: State = { toasts: [] };
+
+function dispatch(action: Action) {
+  memoryState = reducer(memoryState, action);
+  listeners.forEach((listener) => {
+    listener(memoryState);
+  });
+}
+
+type Toast = Omit<ToasterToast, "id">;
+
+function toast({ ...props }: Toast) {
+  const id = genId();
+
+  const update = (props: ToasterToast) =>
+    dispatch({
+      type: "UPDATE_TOAST",
+      toast: { ...props, id },
+    });
+  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id });
+
+  dispatch({
+    type: "ADD_TOAST",
+    toast: {
+      ...props,
+      id,
+      open: true,
+      onOpenChange: (open) => {
+        if (!open) dismiss();
+      },
+    },
+  });
+
+  return {
+    id: id,
+    dismiss,
+    update,
+  };
+}
+
+function useToast() {
+  const [state, setState] = React.useState<State>(memoryState);
+
+  React.useEffect(() => {
+    listeners.push(setState);
+    return () => {
+      const index = listeners.indexOf(setState);
+      if (index > -1) {
+        listeners.splice(index, 1);
+      }
+    };
+  }, [state]);
+
+  return {
+    ...state,
+    toast,
+    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+  };
+}
+
+export { useToast, toast };
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\hooks\useWallet.ts ====================
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { useAuth } from '@/contexts/AuthContext';
+
+export function useWallet() {
+  const { address, isConnected, chain } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { disconnect: wagmiDisconnect } = useDisconnect();
+  const { wallet, isAuthenticated } = useAuth();
+
+  const connectWallet = async () => {
+    const coinbaseConnector = connectors.find((c) => c.id === 'coinbaseWalletSDK');
+    if (coinbaseConnector) {
+      connect({ connector: coinbaseConnector });
+    }
+  };
+
+  const disconnect = () => {
+    wagmiDisconnect();
+  };
+
+  return {
+    address: address || wallet?.address,
+    isConnected: isConnected || isAuthenticated,
+    chain,
+    connectWallet,
+    disconnect,
+  };
+}
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\lib\utils.ts ====================
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\main.tsx ====================
+import { createRoot } from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
+
+createRoot(document.getElementById("root")!).render(<App />);
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\pages\ChallengeDetail.tsx ====================
+import { ArrowLeft, Calendar, DollarSign, Users, Trophy, Target, Loader2 } from "lucide-react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useState, useEffect } from "react";
+import { apiService, Challenge, ChallengeProgress, isChallengeActive, isChallengeCompleted, isChallengeUpcoming } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from "wagmi";
+import { CONTRACT_ADDRESS, MOTIFY_ABI, toBlockchainChallengeId } from "@/contract";
+import { parseEther } from "viem";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+const ChallengeDetail = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { wallet } = useAuth();
+  const { address } = useAccount();
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [progress, setProgress] = useState<ChallengeProgress | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isJoining, setIsJoining] = useState(false);
+  const [joinAmount, setJoinAmount] = useState("");
+  const [showJoinDialog, setShowJoinDialog] = useState(false);
+  const [challengeIdOnChain, setChallengeIdOnChain] = useState<number | null>(null);
+
+  // Wagmi hooks for joining challenge
+  const {
+    writeContract: joinContract,
+    data: joinHash,
+    isPending: joinIsPending,
+    error: joinError
+  } = useWriteContract();
+
+  const {
+    isLoading: joinIsConfirming,
+    isSuccess: joinIsConfirmed
+  } = useWaitForTransactionReceipt({
+    hash: joinHash,
+  });
+
+  // Wagmi hooks for claiming refund
+  const {
+    writeContract: claimContract,
+    data: claimHash,
+    isPending: claimIsPending,
+    error: claimError
+  } = useWriteContract();
+
+  const {
+    isLoading: claimIsConfirming,
+    isSuccess: claimIsConfirmed
+  } = useWaitForTransactionReceipt({
+    hash: claimHash,
+  });
+
+  // Read participant info from contract
+  const { data: participantInfo, refetch: refetchParticipantInfo } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: MOTIFY_ABI,
+    functionName: 'getParticipantInfo',
+    args: challengeIdOnChain !== null && address ? [BigInt(challengeIdOnChain), address] : undefined,
+  } as any);
+
+  useEffect(() => {
+    loadChallenge();
+  }, [id, wallet?.address]);
+
+  // Handle join transaction errors
+  useEffect(() => {
+    if (joinError) {
+      console.error("Join transaction error:", joinError);
+      toast.error("Transaction failed: " + joinError.message);
+      setIsJoining(false);
+    }
+  }, [joinError]);
+
+  // Handle successful join transaction confirmation
+  useEffect(() => {
+    if (joinIsConfirmed && joinHash) {
+      toast.success("Successfully joined challenge on blockchain!");
+      saveJoinToBackend();
+    }
+  }, [joinIsConfirmed, joinHash]);
+
+  // Handle claim transaction errors
+  useEffect(() => {
+    if (claimError) {
+      console.error("Claim transaction error:", claimError);
+      toast.error("Claim failed: " + claimError.message);
+    }
+  }, [claimError]);
+
+  // Handle successful claim transaction confirmation
+  useEffect(() => {
+    if (claimIsConfirmed && claimHash) {
+      toast.success("Successfully claimed your refund!");
+      refetchParticipantInfo();
+    }
+  }, [claimIsConfirmed, claimHash]);
+
+  const loadChallenge = async () => {
+    if (!id) return;
+
+    try {
+      setLoading(true);
+      const challengeData = await apiService.getChallenge(parseInt(id));
+
+      if (!challengeData) {
+        toast.error("Challenge not found");
+        navigate("/");
+        return;
+      }
+
+      setChallenge(challengeData);
+
+      // Convert frontend challenge ID to blockchain challenge ID using the offset
+      if (challengeData.id !== undefined) {
+        const blockchainId = toBlockchainChallengeId(challengeData.id);
+        setChallengeIdOnChain(blockchainId);
+        console.log(`Frontend Challenge ID: ${challengeData.id} -> Blockchain Challenge ID: ${blockchainId}`);
+      }
+
+      // Load progress if user is participating
+      if (wallet?.address && apiService.isUserParticipating(challengeData, wallet.address)) {
+        const progressData = await apiService.getChallengeProgress(
+          challengeData.id,
+          wallet.address,
+          1000
+        );
+        setProgress(progressData);
+      }
+    } catch (error) {
+      console.error("Error loading challenge:", error);
+      toast.error("Failed to load challenge");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveJoinToBackend = async () => {
+    if (!challenge || !wallet?.address) return;
+
+    const amount = parseFloat(joinAmount);
+    try {
+      await apiService.joinChallenge(challenge.id, wallet.address, amount);
+      toast.success("Challenge participation saved!");
+      setShowJoinDialog(false);
+      setJoinAmount("");
+      loadChallenge();
+    } catch (error: any) {
+      console.error("Error saving to backend:", error);
+      toast.error("Joined on blockchain but failed to save locally");
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  const handleJoinChallenge = async () => {
+    if (!challenge || !wallet?.isConnected) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    if (challengeIdOnChain === null) {
+      toast.error("Challenge ID not available. Please try again.");
+      return;
+    }
+
+    const amount = parseFloat(joinAmount);
+    if (isNaN(amount) || amount < 0.00001) {
+      toast.error("Minimum stake amount is 0.00001 ETH");
+      return;
+    }
+
+    setIsJoining(true);
+
+    try {
+      toast.info("Please confirm the transaction in your wallet...");
+
+      // Call the smart contract to join challenge
+      joinContract({
+        address: CONTRACT_ADDRESS,
+        abi: MOTIFY_ABI,
+        functionName: "joinChallenge",
+        args: [BigInt(challengeIdOnChain)],
+        value: parseEther(joinAmount), // Send ETH with the transaction
+      } as any);
+
+    } catch (error: any) {
+      console.error("Error joining challenge:", error);
+      toast.error(error.message || "Failed to join challenge");
+      setIsJoining(false);
+    }
+  };
+
+  const handleClaimRefund = async () => {
+    if (!wallet?.isConnected) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    if (challengeIdOnChain === null) {
+      toast.error("Challenge ID not available. Please try again.");
+      return;
+    }
+
+    try {
+      toast.info("Please confirm the claim transaction in your wallet...");
+
+      claimContract({
+        address: CONTRACT_ADDRESS,
+        abi: MOTIFY_ABI,
+        functionName: "claim",
+        args: [BigInt(challengeIdOnChain)],
+      } as any);
+
+    } catch (error: any) {
+      console.error("Error claiming refund:", error);
+      toast.error(error.message || "Failed to claim refund");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading challenge...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!challenge) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 text-center bg-gradient-card border-border">
+          <p className="text-muted-foreground mb-4">Challenge not found</p>
+          <Link to="/">
+            <Button>Go Home</Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
+
+  const isParticipating = wallet?.address
+    ? apiService.isUserParticipating(challenge, wallet.address)
+    : false;
+  const userStake = wallet?.address
+    ? apiService.getUserStakeAmount(challenge, wallet.address)
+    : 0;
+
+  // Calculate progress percentage from progress data
+  let progressPercentage = 0;
+  if (progress?.progress && progress.progress.length > 0) {
+    const achievedDays = progress.progress.filter(day => day.achieved).length;
+    progressPercentage = Math.round((achievedDays / progress.progress.length) * 100);
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-6">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+        <div className="container mx-auto px-4 py-4 flex items-center gap-3">
+          <Link to="/">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <h1 className="text-xl font-bold">Challenge Details</h1>
+        </div>
+      </header>
+
+      {/* Status Badge */}
+      <div className="container mx-auto px-4 pt-4">
+        {(() => {
+          // Use the original datetime strings from the backend for accurate comparison
+          const backendStartDate = challenge.startDate; // This will be the formatted display date
+          const backendEndDate = challenge.endDate; // This will be the formatted display date
+
+          // We need to get the original challenge data to check precise timing
+          // For now, we'll use the challenge.active property which is set accurately in mapBackendToFrontend
+          if (isChallengeUpcoming(challenge.startDate) || (!challenge.active && challenge.duration.includes('Starts in'))) {
+            return (
+              <Badge variant="secondary" className="bg-blue-500/20 text-blue-500">
+                Upcoming
+              </Badge>
+            );
+          } else if (!challenge.active && challenge.duration === 'Completed') {
+            // Check if user succeeded (if participating)
+            if (progress && progress.currentlySucceeded) {
+              return (
+                <Badge variant="secondary" className="bg-success-light text-success">
+                  Completed - Success
+                </Badge>
+              );
+            } else if (progress) {
+              return (
+                <Badge variant="secondary" className="bg-destructive/20 text-destructive">
+                  Completed - Failed
+                </Badge>
+              );
+            } else {
+              return (
+                <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                  Completed
+                </Badge>
+              );
+            }
+          } else {
+            return (
+              <Badge variant="secondary" className="bg-success-light text-success">
+                Active
+              </Badge>
+            );
+          }
+        })()}
+      </div>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Title Card */}
+        <Card className="p-6 bg-gradient-card border-border">
+          <h2 className="text-2xl font-bold mb-4">{challenge.title}</h2>
+          <p className="text-muted-foreground mb-6">{challenge.description}</p>
+
+          {/* Key Metrics */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 text-primary w-10 h-10 rounded-lg flex items-center justify-center">
+                <DollarSign className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Stake</p>
+                <p className="font-semibold text-lg">{challenge.stake} ETH</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="bg-accent/10 text-accent w-10 h-10 rounded-lg flex items-center justify-center">
+                <Users className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Participants</p>
+                <p className="font-semibold text-lg">{challenge.participants}</p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Progress Card - Only show if participating */}
+        {isParticipating && (
+          <Card className="p-6 bg-gradient-card border-border">
+            <div className="flex items-center gap-2 mb-4">
+              <Target className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-lg">Your Progress</h3>
+            </div>
+            {progress ? (
+              <>
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Days Completed</span>
+                    <span className="font-medium">
+                      {progress.progress.filter(d => d.achieved).length} / {progress.progress.length}
+                    </span>
+                  </div>
+                  <Progress value={progressPercentage} className="h-3" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">{progressPercentage}% complete</p>
+                  {progress.currentlySucceeded ? (
+                    <Badge variant="secondary" className="bg-success-light text-success">
+                      On Track
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-warning/20 text-warning">
+                      Behind
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Daily Progress Breakdown */}
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm font-medium">Daily Progress</p>
+                  <div className="grid grid-cols-7 gap-1">
+                    {progress.progress.map((day, index) => (
+                      <div
+                        key={index}
+                        className={`h-8 rounded flex items-center justify-center text-xs ${day.achieved
+                          ? 'bg-success text-white'
+                          : 'bg-muted text-muted-foreground'
+                          }`}
+                        title={`${day.date}: ${day.achieved ? 'Achieved' : 'Not achieved'}${day.value ? ` (${day.value})` : ''}`}
+                      >
+                        {index + 1}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Loading progress...</p>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Timeline Card */}
+        <Card className="p-6 bg-gradient-card border-border">
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar className="h-5 w-5 text-warning" />
+            <h3 className="font-semibold text-lg">Timeline</h3>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Start Date</span>
+              <span className="font-medium">{challenge.startDate}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">End Date</span>
+              <span className="font-medium">{challenge.endDate}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Time Remaining</span>
+              <span className="font-medium text-warning">{challenge.duration}</span>
+            </div>
+          </div>
+        </Card>
+
+        {/* API Integration Card */}
+        <Card className="p-6 bg-gradient-card border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg mb-1">API</h3>
+              <p className="text-muted-foreground text-sm">STRAVA API</p>
+            </div>
+            <div className="flex items-center justify-center">
+              <img
+                src="/strava_logo.svg"
+                alt="Strava API"
+                className="h-12 w-12 rounded-full object-cover"
+              />
+            </div>
+          </div>
+        </Card>
+
+        {/* Participants Card */}
+        <Card className="p-6 bg-gradient-card border-border">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="h-5 w-5 text-success" />
+            <h3 className="font-semibold text-lg">Participants</h3>
+          </div>
+          <div className="space-y-3">
+            {challenge.participantsList.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No participants yet. Be the first to join!
+              </p>
+            ) : (
+              challenge.participantsList.map((participant, index) => (
+                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-background/50">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback>
+                        {participant.walletAddress.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium font-mono text-sm">
+                        {participant.walletAddress.substring(0, 6)}...
+                        {participant.walletAddress.substring(participant.walletAddress.length - 4)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{participant.amountUsd} ETH</p>
+                    <p className="text-xs text-muted-foreground">staked</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+
+        {/* Action Button - Only show if user is not participating */}
+        {!isParticipating && wallet?.isConnected && (
+          <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
+            <DialogTrigger asChild>
+              <Button
+                className="w-full bg-gradient-primary hover:opacity-90"
+                size="lg"
+                disabled={joinIsPending || joinIsConfirming}
+              >
+                {joinIsPending
+                  ? "Confirm in Wallet..."
+                  : joinIsConfirming
+                    ? "Joining..."
+                    : "Join Challenge"}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-gradient-card">
+              <DialogHeader>
+                <DialogTitle>Join Challenge</DialogTitle>
+                <DialogDescription>
+                  Enter the amount you want to stake for this challenge. Minimum 0.00001 ETH.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Stake Amount (ETH)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    placeholder="0.01"
+                    min="0.00001"
+                    step="0.00001"
+                    value={joinAmount}
+                    onChange={(e) => setJoinAmount(e.target.value)}
+                    className="bg-background"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Your stake will be locked in the smart contract until the challenge ends.
+                  </p>
+                </div>
+                <Button
+                  onClick={handleJoinChallenge}
+                  disabled={isJoining || joinIsPending || joinIsConfirming}
+                  className="w-full bg-gradient-primary"
+                  size="lg"
+                >
+                  {joinIsPending
+                    ? "Confirm in Wallet..."
+                    : joinIsConfirming
+                      ? "Confirming..."
+                      : isJoining
+                        ? "Saving..."
+                        : "Confirm and Join"}
+                </Button>
+                {joinHash && (
+                  <p className="text-xs text-center text-muted-foreground">
+                    Transaction: {joinHash.slice(0, 10)}...{joinHash.slice(-8)}
+                  </p>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {isParticipating && (
+          <Card className="p-4 bg-success/10 border-success">
+            <p className="text-center text-success font-medium mb-3">
+              You're participating with {userStake} ETH staked
+            </p>
+
+            {/* Show participant status from blockchain if available */}
+            {participantInfo && (
+              <div className="text-xs text-center text-muted-foreground space-y-1">
+                <p>On-chain stake: {(Number(participantInfo[0]) / 1e18).toFixed(4)} ETH</p>
+                <p>Status: {
+                  participantInfo[1] === 0 ? "Pending" :
+                    participantInfo[1] === 1 ? "Winner" :
+                      "Loser"
+                }</p>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Claim Button - Show if user is a winner or if timeout has passed */}
+        {isParticipating && participantInfo && participantInfo[0] > 0 && (
+          <>
+            {(participantInfo[1] === 1 || !challenge.active) && (
+              <Button
+                onClick={handleClaimRefund}
+                disabled={claimIsPending || claimIsConfirming}
+                className="w-full bg-gradient-primary hover:opacity-90"
+                size="lg"
+              >
+                {claimIsPending
+                  ? "Confirm in Wallet..."
+                  : claimIsConfirming
+                    ? "Claiming..."
+                    : participantInfo[1] === 1
+                      ? "Claim Your Refund (Winner)"
+                      : "Claim Refund (Timeout)"}
+              </Button>
+            )}
+            {claimHash && (
+              <p className="text-xs text-center text-muted-foreground">
+                Claim Transaction: {claimHash.slice(0, 10)}...{claimHash.slice(-8)}
+              </p>
+            )}
+          </>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default ChallengeDetail;
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\pages\CreateChallenge.tsx ====================
+import { ArrowLeft } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { useState, useEffect } from "react";
+import { apiService } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { CONTRACT_ADDRESS, MOTIFY_ABI } from "@/contract";
+
+const CreateChallenge = () => {
+  const navigate = useNavigate();
+  const { wallet } = useAuth();
+  const [beneficiary, setBeneficiary] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    startDate: "",
+    endDate: "",
+    goal: "",
+    contractAddress: "",
+  });
+
+  // Wagmi hooks for contract interaction
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.id]: e.target.value,
+    });
+  };
+
+  // Handle transaction errors
+  useEffect(() => {
+    if (error) {
+      console.error("Transaction error:", error);
+      toast.error("Transaction failed: " + error.message);
+      setIsSubmitting(false);
+    }
+  }, [error]);
+
+  // Handle successful transaction confirmation
+  useEffect(() => {
+    if (isConfirmed && hash) {
+      toast.success("Challenge created on blockchain!");
+      // Now save to backend
+      saveToBackend();
+    }
+  }, [isConfirmed, hash]);
+
+  const saveToBackend = async () => {
+    try {
+      const startDate = new Date(formData.startDate);
+      const endDate = new Date(formData.endDate);
+
+      let contractAddress = formData.contractAddress;
+      if (beneficiary !== "friend") {
+        const charityAddresses: Record<string, string> = {
+          charity1: "0x1111111111111111111111111111111111111111",
+          charity2: "0x2222222222222222222222222222222222222222",
+          charity3: "0x3333333333333333333333333333333333333333",
+        };
+        contractAddress = charityAddresses[beneficiary] || contractAddress;
+      }
+
+      const challenge = await apiService.createChallenge({
+        name: formData.name,
+        description: formData.description,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        contract_address: contractAddress,
+        goal: formData.goal,
+      });
+
+      toast.success("Challenge created successfully!");
+      navigate("/");
+    } catch (error) {
+      console.error("Error saving challenge to backend:", error);
+      toast.error("Challenge created on blockchain but failed to save locally.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!wallet?.address) {
+      toast.error("Wallet not connected. Please refresh and try again.");
+      return;
+    }
+
+    // Validate dates
+    const startDate = new Date(formData.startDate);
+    const endDate = new Date(formData.endDate);
+
+    if (endDate <= startDate) {
+      toast.error("End date must be after start date");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Determine charity address
+      let charityAddress = formData.contractAddress;
+      if (beneficiary !== "friend") {
+        const charityAddresses: Record<string, string> = {
+          charity1: "0x1111111111111111111111111111111111111111",
+          charity2: "0x2222222222222222222222222222222222222222",
+          charity3: "0x3333333333333333333333333333333333333333",
+        };
+        charityAddress = charityAddresses[beneficiary] || charityAddress;
+      }
+
+      if (!charityAddress || charityAddress === "") {
+        toast.error("Please provide a valid beneficiary address");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Convert end date to Unix timestamp (in seconds)
+      const endTimeTimestamp = Math.floor(endDate.getTime() / 1000);
+
+      // Call the smart contract
+      toast.info("Please confirm the transaction in your wallet...");
+
+      writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: MOTIFY_ABI,
+        functionName: "createChallenge",
+        args: [charityAddress, BigInt(endTimeTimestamp)],
+      } as any);
+
+    } catch (error) {
+      console.error("Error creating challenge:", error);
+      toast.error("Failed to create challenge. Please try again.");
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+        <div className="container mx-auto px-4 py-4 flex items-center gap-3">
+          <Link to="/">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <h1 className="text-xl font-bold">New Challenge</h1>
+        </div>
+      </header>
+
+      {/* Form */}
+      <main className="container mx-auto px-4 py-6">
+        <Card className="p-6 bg-gradient-card border-border">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Challenge Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name">Challenge Name</Label>
+              <Input
+                id="name"
+                placeholder="e.g., 10,000 Steps Challenge"
+                required
+                className="bg-background"
+                value={formData.name}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Describe your challenge..."
+                required
+                className="bg-background min-h-[100px]"
+                value={formData.description}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            {/* Duration */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  required
+                  className="bg-background w-full [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  value={formData.startDate}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  required
+                  className="bg-background w-full [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  value={formData.endDate}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+
+            {/* Goal */}
+            <div className="space-y-2">
+              <Label htmlFor="goal">Goal</Label>
+              <Input
+                id="goal"
+                placeholder="e.g., 10000 (steps per day)"
+                required
+                className="bg-background"
+                value={formData.goal}
+                onChange={handleInputChange}
+              />
+              <p className="text-xs text-muted-foreground">
+                The daily target value (e.g., steps, distance, commits)
+              </p>
+            </div>
+
+            {/* Beneficiary */}
+            <div className="space-y-2">
+              <Label htmlFor="beneficiary">Beneficiary (if you fail)</Label>
+              <Select required onValueChange={setBeneficiary} value={beneficiary}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Select beneficiary" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="charity1">Red Cross</SelectItem>
+                  <SelectItem value="charity2">UNICEF</SelectItem>
+                  <SelectItem value="charity3">WWF</SelectItem>
+                  <SelectItem value="friend">Send to Friend</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Wallet Address (shown only when "Send to Friend" is selected) */}
+            {beneficiary === "friend" && (
+              <div className="space-y-2">
+                <Label htmlFor="contractAddress">Friend's Wallet Address</Label>
+                <Input
+                  id="contractAddress"
+                  placeholder="0x..."
+                  required
+                  className="bg-background"
+                  value={formData.contractAddress}
+                  onChange={handleInputChange}
+                />
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              className="w-full bg-gradient-primary hover:opacity-90"
+              size="lg"
+              disabled={isSubmitting || isPending || isConfirming}
+            >
+              {isPending
+                ? "Confirm in Wallet..."
+                : isConfirming
+                  ? "Confirming Transaction..."
+                  : isSubmitting
+                    ? "Saving..."
+                    : "Create Challenge"}
+            </Button>
+
+            {hash && (
+              <p className="text-xs text-center text-muted-foreground">
+                Transaction: {hash.slice(0, 10)}...{hash.slice(-8)}
+              </p>
+            )}
+          </form>
+        </Card>
+      </main>
+    </div>
+  );
+};
+
+export default CreateChallenge;
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\pages\Home.tsx ====================
+import { useState, useEffect } from "react";
+import { Plus, Users, Coins, Check } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiService, Challenge, isChallengeUpcoming, isChallengeCompleted, isChallengeActive } from "@/services/api";
+import { toast } from "sonner";
+import { WebLogin } from "@/components/WebLogin";
+
+const Home = () => {
+  const [activeTab, setActiveTab] = useState("all");
+  const { user, wallet, isLoading: authLoading, isInMiniApp, isAuthenticated } = useAuth();
+  const [allChallenges, setAllChallenges] = useState<Challenge[]>([]);
+  const [userChallenges, setUserChallenges] = useState<Challenge[]>([]);
+  const [loadingChallenges, setLoadingChallenges] = useState(true);
+  const [challengeProgresses, setChallengeProgresses] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    loadChallenges();
+  }, [wallet?.address]);
+
+  const loadChallenges = async () => {
+    try {
+      setLoadingChallenges(true);
+      const challenges = await apiService.getChallenges();
+      setAllChallenges(challenges);
+
+      if (wallet?.address) {
+        const userChallenges = await apiService.getUserChallenges(wallet.address);
+        setUserChallenges(userChallenges);
+
+        // Load progress for completed challenges where user participated
+        const progressPromises = userChallenges
+          .filter(challenge => isChallengeCompleted(challenge.endDate))
+          .map(async (challenge) => {
+            const progress = await apiService.getChallengeProgress(challenge.id, wallet.address, 1000);
+            return { challengeId: challenge.id, succeeded: progress?.currentlySucceeded || false };
+          });
+
+        const progressResults = await Promise.all(progressPromises);
+        const progressMap = progressResults.reduce((acc, result) => {
+          acc[result.challengeId] = result.succeeded;
+          return acc;
+        }, {} as Record<number, boolean>);
+
+        setChallengeProgresses(progressMap);
+      }
+    } catch (error) {
+      console.error('Failed to load challenges:', error);
+      toast.error('Failed to load challenges');
+    } finally {
+      setLoadingChallenges(false);
+    }
+  };
+
+  const getStatusBadge = (challenge: Challenge, isUserJoined: boolean) => {
+    // Use original dates for accurate time calculations
+    const { originalStartDate, originalEndDate } = challenge;
+
+    // Check if challenge is upcoming
+    if (isChallengeUpcoming(originalStartDate)) {
+      return (
+        <Badge variant="secondary" className="bg-orange-500/20 text-orange-500">
+          Upcoming
+        </Badge>
+      );
+    }
+
+    // Check if challenge is completed
+    if (isChallengeCompleted(originalEndDate)) {
+      if (isUserJoined) {
+        // User participated - check if they succeeded
+        const succeeded = challengeProgresses[challenge.id];
+        if (succeeded) {
+          return (
+            <Badge variant="secondary" className="bg-green-700/20 text-green-700">
+              Done
+            </Badge>
+          );
+        } else {
+          return (
+            <Badge variant="secondary" className="bg-red-500/20 text-red-500">
+              Failed
+            </Badge>
+          );
+        }
+      } else {
+        // User didn't participate - just show completed
+        return (
+          <Badge variant="secondary" className="bg-muted text-muted-foreground">
+            Completed
+          </Badge>
+        );
+      }
+    }
+
+    // Challenge is active
+    if (isChallengeActive(originalStartDate, originalEndDate)) {
+      return (
+        <Badge variant="secondary" className="bg-success-light text-success">
+          Active
+        </Badge>
+      );
+    }
+
+    return null;
+  };
+
+  if (!isInMiniApp && !isAuthenticated && !authLoading) {
+    return <WebLogin />;
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Home</h1>
+          <Link to="/profile">
+            <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
+              <AvatarImage
+                src={user?.pfpUrl || "/placeholder.svg"}
+                alt={user?.displayName || "Profile"}
+                className="object-cover"
+              />
+              <AvatarFallback>
+                {user?.displayName?.substring(0, 2).toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="all">All Challenges</TabsTrigger>
+            <TabsTrigger value="my">My Challenges</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="flex flex-col gap-4 mt-0">
+            {loadingChallenges ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading challenges...</p>
+                </div>
+              </div>
+            ) : allChallenges.length === 0 ? (
+              <Card className="p-8 text-center bg-gradient-card border-border">
+                <p className="text-muted-foreground mb-4">No challenges available yet.</p>
+                <Link to="/create">
+                  <Button className="bg-gradient-primary">Create First Challenge</Button>
+                </Link>
+              </Card>
+            ) : (
+              allChallenges.map((challenge) => {
+                const isUserJoined = wallet?.address
+                  ? apiService.isUserParticipating(challenge, wallet.address)
+                  : false;
+
+                return (
+                  <Link key={challenge.id} to={`/challenge/${challenge.id}`} className="block">
+                    <Card className="p-4 hover:shadow-md transition-all cursor-pointer bg-gradient-card border-border">
+                      {/* First row: Title and badges */}
+                      <div className="flex items-start justify-between mb-3">
+                        <h3 className="font-semibold text-lg">{challenge.title}</h3>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(challenge, isUserJoined)}
+                          {isUserJoined && (
+                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-success text-white">
+                              <Check className="h-4 w-4" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Second row: Two columns */}
+                      <div className="flex items-center justify-between">
+                        {/* Left column: Duration and stats */}
+                        <div className="flex flex-col gap-2">
+                          <p className="text-sm text-muted-foreground">{challenge.duration}</p>
+                          <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center gap-1">
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-foreground font-medium">{challenge.participants}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Coins className="h-4 w-4 text-primary" />
+                              <span className="text-foreground font-medium">{challenge.stake} ETH</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  </Link>
+                );
+              })
+            )}
+          </TabsContent>
+
+          <TabsContent value="my" className="flex flex-col gap-4 mt-0">
+            {loadingChallenges ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading your challenges...</p>
+                </div>
+              </div>
+            ) : !wallet?.isConnected ? (
+              <Card className="p-8 text-center bg-gradient-card border-border">
+                <p className="text-muted-foreground">Connect your wallet to see your challenges.</p>
+              </Card>
+            ) : userChallenges.length === 0 ? (
+              <Card className="p-8 text-center bg-gradient-card border-border">
+                <p className="text-muted-foreground mb-4">You haven't joined any challenges yet.</p>
+                <Link to="/create">
+                  <Button className="bg-gradient-primary">Create Your First Challenge</Button>
+                </Link>
+              </Card>
+            ) : (
+              userChallenges.map((challenge) => {
+                const isUserJoined = wallet?.address
+                  ? apiService.isUserParticipating(challenge, wallet.address)
+                  : false;
+
+                return (
+                  <Link key={challenge.id} to={`/challenge/${challenge.id}`} className="block">
+                    <Card className="p-4 hover:shadow-md transition-all cursor-pointer bg-gradient-card border-border">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 mr-4">
+                          <h3 className="font-semibold text-lg mb-1">{challenge.title}</h3>
+                          <div className="flex flex-col gap-2">
+                            <p className="text-sm text-muted-foreground">{challenge.duration}</p>
+                            <div className="flex items-center gap-4 text-sm">
+                              <div className="flex items-center gap-1">
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-foreground font-medium">{challenge.participants}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Coins className="h-4 w-4 text-primary" />
+                                <span className="text-foreground font-medium">{challenge.stake} ETH</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(challenge, isUserJoined)}
+                          {isUserJoined && (
+                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-success text-white">
+                              <Check className="h-4 w-4" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  </Link>
+                );
+              })
+            )}
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      <Link to="/create">
+        <Button
+          size="lg"
+          className="fixed bottom-6 right-6 h-14 w-14 shadow-glow bg-gradient-primary hover:opacity-90"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      </Link>
+    </div>
+  );
+};
+
+export default Home;
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\pages\NotFound.tsx ====================
+import { useLocation } from "react-router-dom";
+import { useEffect } from "react";
+
+const NotFound = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
+  }, [location.pathname]);
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-100">
+      <div className="text-center">
+        <h1 className="mb-4 text-4xl font-bold">404</h1>
+        <p className="mb-4 text-xl text-gray-600">Oops! Page not found</p>
+        <a href="/" className="text-blue-500 underline hover:text-blue-700">
+          Return to Home
+        </a>
+      </div>
+    </div>
+  );
+};
+
+export default NotFound;
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\pages\Profile.tsx ====================
+import { X, Trophy, Target, DollarSign, TrendingUp } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { apiService, UserStats, Activity } from "@/services/api";
+
+const Profile = () => {
+  const { user, wallet, isLoading } = useAuth();
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  useEffect(() => {
+    if (wallet?.address) {
+      loadUserData();
+    }
+  }, [wallet?.address]);
+
+  const loadUserData = async () => {
+    if (!wallet?.address) return;
+
+    try {
+      setLoadingData(true);
+      // Mock the stats data
+      const mockStats: UserStats = {
+        totalChallengesSucceeded: 12,
+        totalChallengesParticipated: 18,
+        totalAmountContributedUsd: 2.245, // in ETH
+      };
+
+      const [statsData, userActivities] = await Promise.all([
+        Promise.resolve(mockStats), // Return mocked stats
+        apiService.getUserActivity(wallet.address),
+      ]);
+      setUserStats(statsData);
+      setActivities(userActivities);
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  const stats = userStats ? [
+    {
+      icon: Trophy,
+      label: "Succeeded",
+      value: userStats.totalChallengesSucceeded.toString(),
+      color: "text-success",
+      bgColor: "bg-success-light",
+    },
+    {
+      icon: Target,
+      label: "Participated",
+      value: userStats.totalChallengesParticipated.toString(),
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      icon: DollarSign,
+      label: "Total Contributed",
+      value: `${userStats.totalAmountContributedUsd.toFixed(4)} ETH`,
+      color: "text-warning",
+      bgColor: "bg-warning-light",
+    },
+    {
+      icon: TrendingUp,
+      label: "Success Rate",
+      value: userStats.totalChallengesParticipated > 0
+        ? `${Math.round((userStats.totalChallengesSucceeded / userStats.totalChallengesParticipated) * 100)}%`
+        : "0%",
+      color: "text-accent",
+      bgColor: "bg-accent/10",
+    },
+  ] : [
+    {
+      icon: Trophy,
+      label: "Succeeded",
+      value: "0",
+      color: "text-success",
+      bgColor: "bg-success-light",
+    },
+    {
+      icon: Target,
+      label: "Participated",
+      value: "0",
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      icon: DollarSign,
+      label: "Total Contributed",
+      value: "0 ETH",
+      color: "text-warning",
+      bgColor: "bg-warning-light",
+    },
+    {
+      icon: TrendingUp,
+      label: "Success Rate",
+      value: "0%",
+      color: "text-accent",
+      bgColor: "bg-accent/10",
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Profile</h1>
+          <Link to="/">
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <X className="h-5 w-5" />
+            </Button>
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-6">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading profile...</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Profile Info */}
+            <div className="flex items-center gap-4 mb-6">
+              <Avatar className="h-24 w-24 border-2 border-border">
+                <AvatarImage
+                  src={user?.pfpUrl || "/placeholder.svg"}
+                  alt={user?.displayName || "Profile"}
+                  className="object-cover"
+                />
+                <AvatarFallback className="text-2xl">
+                  {user?.displayName?.substring(0, 2).toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold mb-1">
+                  {user?.displayName || "Anonymous User"}
+                </h2>
+                <p className="text-sm text-muted-foreground mb-1">
+                  @{user?.username || "user"}
+                </p>
+                {wallet?.address && (
+                  <p className="text-xs text-muted-foreground font-mono">
+                    {wallet.address.substring(0, 6)}...{wallet.address.substring(wallet.address.length - 4)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <Separator className="mb-6" />
+
+            {/* Stats Dashboard */}
+            <h2 className="text-xl font-semibold mb-4">Your Stats</h2>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {stats.map((stat, index) => (
+                <Card key={index} className="p-4 bg-gradient-card border-border">
+                  <div className={`${stat.bgColor} ${stat.color} w-10 h-10 rounded-lg flex items-center justify-center mb-3`}>
+                    <stat.icon className="h-5 w-5" />
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                </Card>
+              ))}
+            </div>
+
+            <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
+            <div className="space-y-3">
+              {[
+                { title: "Completed: Run 50km", date: "2 days ago", status: "success" },
+                { title: "Failed: 100 Commits", date: "1 week ago", status: "failed" },
+                { title: "Completed: Read 5 Books", date: "2 weeks ago", status: "success" },
+              ].map((activity, index) => (
+                <Card key={index} className="p-4 bg-gradient-card border-border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">{activity.title}</h3>
+                      <p className="text-sm text-muted-foreground">{activity.date}</p>
+                    </div>
+                    <div
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${activity.status === "success"
+                        ? "bg-success-light text-success"
+                        : "bg-destructive-light text-destructive"
+                        }`}
+                    >
+                      {activity.status === "success" ? "Won" : "Lost"}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default Profile;
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\providers\OnchainProviders.tsx ====================
+import { ReactNode } from 'react';
+import { OnchainKitProvider } from '@coinbase/onchainkit';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { WagmiProvider, createConfig, http } from 'wagmi';
+import { base } from 'wagmi/chains';
+import { coinbaseWallet } from 'wagmi/connectors';
+
+// Setup Wagmi config
+const config = createConfig({
+  chains: [base],
+  connectors: [
+    coinbaseWallet({
+      appName: 'Motify',
+      preference: 'smartWalletOnly',
+    }),
+  ],
+  transports: {
+    [base.id]: http(),
+  },
+});
+
+const queryClient = new QueryClient();
+
+interface OnchainProvidersProps {
+  children: ReactNode;
+}
+
+export function OnchainProviders({ children }: OnchainProvidersProps) {
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <OnchainKitProvider
+          apiKey={import.meta.env.VITE_ONCHAINKIT_API_KEY}
+          chain={base}
+          config={{
+            appearance: {
+              mode: 'auto',
+              theme: 'default',
+            },
+          }}
+        >
+          {children}
+        </OnchainKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
+}
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\services\api.ts ====================
+// API service for Flask backend integration
+// Remove trailing slash to prevent double slashes in URLs
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+
+// Backend Challenge interface (as received from Flask)
+export interface BackendChallenge {
+  id: number;
+  name: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  contract_address: string;
+  goal: string;
+  participants: Array<{
+    walletAddress: string;
+    amountUsd: number;
+  }>;
+  completed: boolean;
+}
+
+// Frontend Challenge interface (for UI)
+export interface Challenge {
+  id: number;
+  title: string;
+  description: string;
+  stake: number;
+  participants: number;
+  duration: string;
+  startDate: string;
+  endDate: string;
+  // Add original date fields for accurate time calculations
+  originalStartDate: string;
+  originalEndDate: string;
+  progress: number;
+  currentProgress: string;
+  goal: string;
+  active: boolean;
+  contract_address: string;
+  participantsList: Array<{
+    walletAddress: string;
+    amountUsd: number;
+  }>;
+}
+
+// User stats interface matching backend response
+export interface UserStats {
+  totalChallengesParticipated: number;
+  totalChallengesSucceeded: number;
+  totalAmountContributedUsd: number;
+}
+
+// Calculated stats for UI display
+export interface DisplayUserStats extends UserStats {
+  completed: number;
+  active: number;
+  totalStaked: number;
+  successRate: number;
+}
+
+export interface Activity {
+  id: string;
+  title: string;
+  date: string;
+  status: 'success' | 'failed';
+  amount: number;
+}
+
+export interface ChallengeProgress {
+  progress: Array<{
+    date: string;
+    achieved: boolean;
+    value?: number;
+  }>;
+  currentlySucceeded: boolean;
+}
+
+// Helper function to format duration with precise time calculations
+function formatDuration(startDate: string, endDate: string): string {
+  const now = new Date();
+  const end = new Date(endDate);
+  const start = new Date(startDate);
+
+  if (now < start) {
+    const msUntilStart = start.getTime() - now.getTime();
+    const daysUntilStart = Math.ceil(msUntilStart / (1000 * 60 * 60 * 24));
+    const hoursUntilStart = Math.ceil(msUntilStart / (1000 * 60 * 60));
+
+    if (daysUntilStart > 1) {
+      return `Starts in ${daysUntilStart} day${daysUntilStart !== 1 ? 's' : ''}`;
+    } else if (hoursUntilStart > 1) {
+      return `Starts in ${hoursUntilStart} hour${hoursUntilStart !== 1 ? 's' : ''}`;
+    } else {
+      const minutesUntilStart = Math.ceil(msUntilStart / (1000 * 60));
+      return `Starts in ${minutesUntilStart} minute${minutesUntilStart !== 1 ? 's' : ''}`;
+    }
+  }
+
+  if (now > end) {
+    return 'Completed';
+  }
+
+  const msLeft = end.getTime() - now.getTime();
+  const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
+  const hoursLeft = Math.ceil(msLeft / (1000 * 60 * 60));
+
+  if (daysLeft > 1) {
+    return `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`;
+  } else if (hoursLeft > 1) {
+    return `${hoursLeft} hour${hoursLeft !== 1 ? 's' : ''} left`;
+  } else {
+    const minutesLeft = Math.ceil(msLeft / (1000 * 60));
+    return `${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''} left`;
+  }
+}
+
+// Helper function to format date for display while preserving original datetime
+function formatDisplayDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// Helper function to check if a challenge is currently active
+export function isChallengeActive(startDate: string, endDate: string): boolean {
+  const now = new Date();
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  return now >= start && now <= end;
+}
+
+// Helper function to check if a challenge is completed
+export function isChallengeCompleted(endDate: string): boolean {
+  const now = new Date();
+  const end = new Date(endDate);
+  return now > end;
+}
+
+// Helper function to check if a challenge is upcoming
+export function isChallengeUpcoming(startDate: string): boolean {
+  const now = new Date();
+  const start = new Date(startDate);
+  return now < start;
+}
+
+// Convert backend challenge to frontend format
+function mapBackendToFrontend(backendChallenge: BackendChallenge): Challenge {
+  const totalStake = backendChallenge.participants.reduce((sum, p) => sum + p.amountUsd, 0);
+
+  return {
+    id: backendChallenge.id,
+    title: backendChallenge.name,
+    description: backendChallenge.description,
+    stake: totalStake,
+    participants: backendChallenge.participants.length,
+    duration: formatDuration(backendChallenge.start_date, backendChallenge.end_date),
+    startDate: formatDisplayDate(backendChallenge.start_date),
+    endDate: formatDisplayDate(backendChallenge.end_date),
+    // Preserve original dates for accurate calculations
+    originalStartDate: backendChallenge.start_date,
+    originalEndDate: backendChallenge.end_date,
+    progress: 0,
+    currentProgress: '0',
+    goal: backendChallenge.goal,
+    active: isChallengeActive(backendChallenge.start_date, backendChallenge.end_date),
+    contract_address: backendChallenge.contract_address,
+    participantsList: backendChallenge.participants,
+  };
+}
+
+class ApiService {
+  // Challenges
+  async getChallenges(): Promise<Challenge[]> {
+    try {
+      const response = await fetch(`${API_URL}/challenges`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch challenges');
+      }
+      const backendChallenges: BackendChallenge[] = await response.json();
+      return backendChallenges.map(mapBackendToFrontend);
+    } catch (error) {
+      console.error('Error fetching challenges:', error);
+      return [];
+    }
+  }
+
+  async getChallenge(id: number): Promise<Challenge | null> {
+    try {
+      const challenges = await this.getChallenges();
+      return challenges.find(c => c.id === id) || null;
+    } catch (error) {
+      console.error('Error fetching challenge:', error);
+      return null;
+    }
+  }
+
+  async getUserChallenges(address: string): Promise<Challenge[]> {
+    try {
+      const allChallenges = await this.getChallenges();
+      // Filter challenges where the user is a participant
+      return allChallenges.filter(challenge =>
+        challenge.participantsList.some(p =>
+          p.walletAddress.toLowerCase() === address.toLowerCase()
+        )
+      );
+    } catch (error) {
+      console.error('Error fetching user challenges:', error);
+      return [];
+    }
+  }
+
+  async createChallenge(data: {
+    name: string;
+    description: string;
+    start_date: string;
+    end_date: string;
+    contract_address: string;
+    goal: string;
+  }): Promise<Challenge> {
+    try {
+      const response = await fetch(`${API_URL}/challenges`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create challenge');
+      }
+
+      const backendChallenge: BackendChallenge = await response.json();
+      return mapBackendToFrontend(backendChallenge);
+    } catch (error) {
+      console.error('Error creating challenge:', error);
+      throw error;
+    }
+  }
+
+  async joinChallenge(challengeId: number, walletAddress: string, amountUsd: number): Promise<void> {
+    try {
+      const response = await fetch(`${API_URL}/challenges/${challengeId}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress, amountUsd }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to join challenge');
+      }
+    } catch (error) {
+      console.error('Error joining challenge:', error);
+      throw error;
+    }
+  }
+
+  async getChallengeProgress(challengeId: number, walletAddress: string, goal: number = 1000): Promise<ChallengeProgress | null> {
+    try {
+      const response = await fetch(`${API_URL}/challenges/${challengeId}/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress, goal }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch challenge progress');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching challenge progress:', error);
+      return null;
+    }
+  }
+
+  // User Stats
+  async getUserStats(address: string): Promise<UserStats> {
+    try {
+      const response = await fetch(`${API_URL}/users/${address}/stats`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user stats');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+      return {
+        totalChallengesParticipated: 0,
+        totalChallengesSucceeded: 0,
+        totalAmountContributedUsd: 0,
+      };
+    }
+  }
+
+  async getUserActivity(address: string): Promise<Activity[]> {
+    // This endpoint doesn't exist in the backend yet, keeping for future use
+    return [];
+  }
+
+  // Check if user is participating in a challenge
+  isUserParticipating(challenge: Challenge, walletAddress: string): boolean {
+    return challenge.participantsList.some(p =>
+      p.walletAddress.toLowerCase() === walletAddress.toLowerCase()
+    );
+  }
+
+  // Get user's stake amount in a challenge
+  getUserStakeAmount(challenge: Challenge, walletAddress: string): number {
+    const participant = challenge.participantsList.find(p =>
+      p.walletAddress.toLowerCase() === walletAddress.toLowerCase()
+    );
+    return participant?.amountUsd || 0;
+  }
+}
+
+export const apiService = new ApiService();
+
+============================================================
+
+==================== C:\Users\lenny\Desktop\TU Wien\Motify\src\vite-env.d.ts ====================
+/// <reference types="vite/client" />

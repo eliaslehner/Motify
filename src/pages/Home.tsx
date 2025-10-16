@@ -1,5 +1,6 @@
+// Home.tsx
 import { useState, useEffect } from "react";
-import { Plus, Users, Coins, Check } from "lucide-react";
+import { Plus, Users, Coins, Check, TrendingUp, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -33,7 +34,6 @@ const Home = () => {
         const userChallenges = await apiService.getUserChallenges(wallet.address);
         setUserChallenges(userChallenges);
 
-        // Load progress for completed challenges where user participated
         const progressPromises = userChallenges
           .filter(challenge => isChallengeCompleted(challenge.endDate))
           .map(async (challenge) => {
@@ -57,57 +57,151 @@ const Home = () => {
     }
   };
 
+  const getServiceInfo = (challenge: Challenge) => {
+    const titleLower = challenge.title.toLowerCase();
+    const descLower = challenge.description.toLowerCase();
+    
+    if (titleLower.includes('strava') || titleLower.includes('steps') || titleLower.includes('run') || titleLower.includes('walk')) {
+      return { name: 'STRAVA', logo: '/strava_logo.svg', color: 'bg-orange-500' };
+    }
+    
+    if (titleLower.includes('github') || titleLower.includes('commit') || descLower.includes('github')) {
+      return { name: 'GITHUB', logo: '/github-white.svg', color: 'bg-black' };
+    }
+    
+    return { name: 'CUSTOM', logo: null, color: 'bg-primary' };
+  };
+
   const getStatusBadge = (challenge: Challenge, isUserJoined: boolean) => {
-    // Use original dates for accurate time calculations
     const { originalStartDate, originalEndDate } = challenge;
 
-    // Check if challenge is upcoming
     if (isChallengeUpcoming(originalStartDate)) {
       return (
-        <Badge variant="secondary" className="bg-orange-500/20 text-orange-500">
+        <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border border-orange-500/20 font-medium">
           Upcoming
         </Badge>
       );
     }
 
-    // Check if challenge is completed
     if (isChallengeCompleted(originalEndDate)) {
       if (isUserJoined) {
-        // User participated - check if they succeeded
         const succeeded = challengeProgresses[challenge.id];
         if (succeeded) {
           return (
-            <Badge variant="secondary" className="bg-green-700/20 text-green-700">
-              Done
+            <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium">
+              Completed
             </Badge>
           );
         } else {
           return (
-            <Badge variant="secondary" className="bg-red-500/20 text-red-500">
+            <Badge variant="secondary" className="bg-red-500/10 text-red-600 border border-red-500/20 font-medium">
               Failed
             </Badge>
           );
         }
       } else {
-        // User didn't participate - just show completed
         return (
-          <Badge variant="secondary" className="bg-muted text-muted-foreground">
-            Completed
+          <Badge variant="secondary" className="bg-gray-500/10 text-gray-600 border border-gray-500/20 font-medium">
+            Ended
           </Badge>
         );
       }
     }
 
-    // Challenge is active
     if (isChallengeActive(originalStartDate, originalEndDate)) {
       return (
-        <Badge variant="secondary" className="bg-success-light text-success">
-          Active
+        <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium">
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+            Active
+          </div>
         </Badge>
       );
     }
 
     return null;
+  };
+
+  const ChallengeCard = ({ challenge, isUserJoined }: { challenge: Challenge; isUserJoined: boolean }) => {
+    const serviceInfo = getServiceInfo(challenge);
+    const isGithub = serviceInfo.name === 'GITHUB';
+    
+    return (
+      <Link to={`/challenge/${challenge.id}`} className="block group">
+        <Card className="p-5 hover:shadow-lg transition-all duration-300 cursor-pointer bg-gradient-to-br from-card to-card/50 border-border/50 hover:border-primary/20 relative overflow-hidden">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute inset-0" style={{
+              backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
+              backgroundSize: '24px 24px'
+            }}></div>
+          </div>
+
+          <div className="relative">
+            {/* Header Row */}
+            <div className="flex items-start justify-between mb-4">
+              {/* Service Logo and Name */}
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-full ${serviceInfo.color} flex items-center justify-center shadow-md overflow-hidden shrink-0 aspect-square transform-gpu ${isGithub ? 'border-2 border-black' : ''}`}>
+                  {serviceInfo.logo ? (
+                    <img
+                      src={serviceInfo.logo}
+                      alt={serviceInfo.name}
+                      className="block w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
+                    />
+                  ) : (
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-muted-foreground tracking-wider">{serviceInfo.name}</span>
+                  <h3 className="font-bold text-lg leading-tight text-foreground group-hover:text-primary transition-colors">{challenge.title}</h3>
+                </div>
+              </div>
+
+              {/* Status and Participation Badge */}
+              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                {getStatusBadge(challenge, isUserJoined)}
+                {isUserJoined && (
+                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white shadow-md">
+                    <Check className="h-4 w-4" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Description */}
+            <p className="text-sm text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
+              {challenge.description}
+            </p>
+
+            {/* Stats Row */}
+            <div className="flex items-center justify-between pt-4 border-t border-border/50">
+              {/* Duration */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                <span className="font-medium">{challenge.duration}</span>
+              </div>
+
+              {/* Participants and Stake */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-full">
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm font-semibold text-foreground">{challenge.participants}</span>
+                  {challenge.isCharity && (
+                    <Heart className="w-3 h-3 text-red-500/70 fill-red-500/20 ml-1" />
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 bg-primary/10 px-3 py-1.5 rounded-full">
+                  <Coins className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-sm font-semibold text-primary">{challenge.stake.toFixed(3)} ETH</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </Link>
+    );
   };
 
   if (!isInMiniApp && !isAuthenticated && !authLoading) {
@@ -163,40 +257,11 @@ const Home = () => {
                   : false;
 
                 return (
-                  <Link key={challenge.id} to={`/challenge/${challenge.id}`} className="block">
-                    <Card className="p-4 hover:shadow-md transition-all cursor-pointer bg-gradient-card border-border">
-                      {/* First row: Title and badges */}
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-semibold text-lg">{challenge.title}</h3>
-                        <div className="flex items-center gap-2">
-                          {getStatusBadge(challenge, isUserJoined)}
-                          {isUserJoined && (
-                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-success text-white">
-                              <Check className="h-4 w-4" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Second row: Two columns */}
-                      <div className="flex items-center justify-between">
-                        {/* Left column: Duration and stats */}
-                        <div className="flex flex-col gap-2">
-                          <p className="text-sm text-muted-foreground">{challenge.duration}</p>
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Users className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-foreground font-medium">{challenge.participants}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Coins className="h-4 w-4 text-primary" />
-                              <span className="text-foreground font-medium">{challenge.stake} ETH</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
+                  <ChallengeCard
+                    key={challenge.id}
+                    challenge={challenge}
+                    isUserJoined={isUserJoined}
+                  />
                 );
               })
             )}
@@ -228,36 +293,11 @@ const Home = () => {
                   : false;
 
                 return (
-                  <Link key={challenge.id} to={`/challenge/${challenge.id}`} className="block">
-                    <Card className="p-4 hover:shadow-md transition-all cursor-pointer bg-gradient-card border-border">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 mr-4">
-                          <h3 className="font-semibold text-lg mb-1">{challenge.title}</h3>
-                          <div className="flex flex-col gap-2">
-                            <p className="text-sm text-muted-foreground">{challenge.duration}</p>
-                            <div className="flex items-center gap-4 text-sm">
-                              <div className="flex items-center gap-1">
-                                <Users className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-foreground font-medium">{challenge.participants}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Coins className="h-4 w-4 text-primary" />
-                                <span className="text-foreground font-medium">{challenge.stake} ETH</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {getStatusBadge(challenge, isUserJoined)}
-                          {isUserJoined && (
-                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-success text-white">
-                              <Check className="h-4 w-4" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
+                  <ChallengeCard
+                    key={challenge.id}
+                    challenge={challenge}
+                    isUserJoined={isUserJoined}
+                  />
                 );
               })
             )}
