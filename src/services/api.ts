@@ -1,6 +1,6 @@
+// service/api.ts
 // Mock API service for frontend development without backend
 // Currently in use in development mode
-
 // Activity type definitions
 export type StravaActivityType = 'RUN' | 'WALK' | 'RIDE';
 export type GithubActivityType = 'COMMITS' | 'PULL_REQUESTS' | 'ISSUES_FIXED';
@@ -406,7 +406,7 @@ class MockApiService {
 
   async joinChallenge(challengeId: number, walletAddress: string, amountUsd: number): Promise<void> {
     await this.delay(500);
-    console.log(`📦 [MOCK] Joining challenge ${challengeId} with ${amountUsd} ETH...`);
+    console.log(`📦 [MOCK] Joining challenge ${challengeId} with ${amountUsd} USDC...`);
     
     const challenge = mockChallengesStorage.find(c => c.id === challengeId);
     if (!challenge) {

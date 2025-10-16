@@ -1,5 +1,5 @@
-// ChallengeDetail.tsx
-import { ArrowLeft, Calendar, DollarSign, Users, Trophy, Target, Loader2, TrendingUp, Heart, Wallet, Copy, CheckCircle2, ExternalLink } from "lucide-react";
+// pages/ChallengeDetail.tsx
+import { ArrowLeft, Calendar, DollarSign, Users, Trophy, Target, Loader2, TrendingUp, Heart, Wallet, Copy, CheckCircle2, ExternalLink, Share2 } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -151,7 +151,7 @@ const ChallengeDetail = () => {
 
     const amount = parseFloat(joinAmount);
     if (isNaN(amount) || amount < 0.00001) {
-      toast.error("Minimum stake amount is 0.00001 ETH");
+      toast.error("Minimum stake amount is 0.00001 USDC");
       return;
     }
 
@@ -210,6 +210,30 @@ const ChallengeDetail = () => {
       setTimeout(() => setCopiedAddress(null), 2000);
     } catch (err) {
       toast.error("Failed to copy to clipboard");
+    }
+  };
+
+  const handleShare = async () => {
+    const shareText = `Join my challenge: ${challenge?.title}! 🚀\n\n${challenge?.description}\n\nStake: ${challenge?.stake.toFixed(3)} USDC\nParticipants: ${challenge?.participants}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: challenge?.title,
+          text: shareText,
+          url: window.location.href,
+        });
+      } catch (err) {
+        console.log("Share cancelled or failed");
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(shareText);
+        toast.success("Challenge details copied to clipboard!");
+      } catch (err) {
+        toast.error("Failed to share");
+      }
     }
   };
 
@@ -285,7 +309,7 @@ const ChallengeDetail = () => {
 
     const amount = parseFloat(joinAmount);
     if (isNaN(amount) || amount < 0.00001) {
-      toast.error("Minimum stake amount is 0.00001 ETH");
+      toast.error("Minimum stake amount is 0.00001 USDC");
       return;
     }
 
@@ -354,13 +378,23 @@ const ChallengeDetail = () => {
     <div className="min-h-screen bg-background pb-6">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-3">
-          <Link to="/">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <h1 className="text-xl font-bold">Challenge Details</h1>
+        <div className="container mx-auto px-4 py-4 flex items-center gap-3 justify-between">
+          <div className="flex items-center gap-3">
+            <Link to="/">
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <h1 className="text-xl font-bold">Challenge Details</h1>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleShare}
+            title="Share this challenge"
+          >
+            <Share2 className="h-5 w-5" />
+          </Button>
         </div>
       </header>
 
@@ -416,7 +450,7 @@ const ChallengeDetail = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">Total Pool</p>
-                  <p className="font-semibold text-base truncate">{challenge.stake.toFixed(4)} ETH</p>
+                  <p className="font-semibold text-base truncate">{challenge.stake.toFixed(4)} USDC</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 bg-background/50 p-3 rounded-lg">
@@ -441,13 +475,13 @@ const ChallengeDetail = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-green-600 mb-1">You're In!</p>
-                <p className="text-xs text-muted-foreground">Staked: <span className="font-mono font-semibold">{userStake.toFixed(4)} ETH</span></p>
+                <p className="text-xs text-muted-foreground">Staked: <span className="font-mono font-semibold">{userStake.toFixed(4)} USDC</span></p>
               </div>
             </div>
 
             {participantInfo && (
               <div className="mt-3 pt-3 border-t border-green-500/20 text-xs text-muted-foreground space-y-1">
-                <p className="font-mono">On-chain: {(Number(participantInfo[0]) / 1e18).toFixed(6)} ETH</p>
+                <p className="font-mono">On-chain: {(Number(participantInfo[0]) / 1e18).toFixed(6)} USDC</p>
                 <p>Status: <span className="font-semibold">{
                   participantInfo[1] === 0 ? "Pending" :
                     participantInfo[1] === 1 ? "Winner 🎉" :
@@ -638,15 +672,15 @@ const ChallengeDetail = () => {
           </div>
         </Card>
 
-        {/* Participants Card */}
+        {/* Most Wagered Leaderboard */}
         <Card className="p-6 bg-gradient-to-br from-card to-card/50 border-border/50">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-green-600" />
-              <h3 className="font-semibold text-lg">Participants</h3>
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              <h3 className="font-semibold text-lg">Most Wagered</h3>
             </div>
             <Badge variant="secondary" className="bg-muted text-foreground">
-              {challenge.participants}
+              Top 5
             </Badge>
           </div>
           <div className="space-y-2">
@@ -657,26 +691,32 @@ const ChallengeDetail = () => {
                 <p className="text-xs text-muted-foreground mt-1">Be the first to join!</p>
               </div>
             ) : (
-              challenge.participantsList.map((participant, index) => (
-                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background transition-colors">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <Avatar className="h-9 w-9 shrink-0">
-                      <AvatarFallback className="text-xs">
-                        {participant.walletAddress.substring(2, 4).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-mono text-sm font-medium truncate">
-                        {participant.walletAddress.substring(0, 6)}...
-                        {participant.walletAddress.substring(participant.walletAddress.length - 4)}
-                      </p>
+              [...challenge.participantsList]
+                .sort((a, b) => b.amountUsd - a.amountUsd)
+                .slice(0, 5)
+                .map((participant, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background transition-colors">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-sm font-semibold text-white shrink-0">
+                        {index + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <Avatar className="h-9 w-9 inline-block mr-2 shrink-0">
+                          <AvatarFallback className="text-xs">
+                            {participant.walletAddress.substring(2, 4).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <p className="font-mono text-sm font-medium truncate inline">
+                          {participant.walletAddress.substring(0, 6)}...
+                          {participant.walletAddress.substring(participant.walletAddress.length - 4)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 ml-3">
+                      <p className="text-sm font-semibold whitespace-nowrap text-primary">{participant.amountUsd.toFixed(4)} USDC</p>
                     </div>
                   </div>
-                  <div className="text-right shrink-0 ml-3">
-                    <p className="text-sm font-semibold whitespace-nowrap">{participant.amountUsd.toFixed(4)} ETH</p>
-                  </div>
-                </div>
-              ))
+                ))
             )}
           </div>
         </Card>
@@ -701,12 +741,12 @@ const ChallengeDetail = () => {
               <DialogHeader>
                 <DialogTitle>Join Challenge</DialogTitle>
                 <DialogDescription>
-                  Enter the amount you want to stake for this challenge. Minimum 0.00001 ETH.
+                  Enter the amount you want to stake for this challenge. Minimum 0.00001 USDC.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Stake Amount (ETH)</Label>
+                  <Label htmlFor="amount">Stake Amount (USDC)</Label>
                   <Input
                     id="amount"
                     type="number"

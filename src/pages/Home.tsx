@@ -1,10 +1,9 @@
-// Home.tsx
+// pages/Home.tsx
 import { useState, useEffect } from "react";
 import { Plus, Users, Coins, Check, TrendingUp, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,9 +12,7 @@ import { toast } from "sonner";
 import { WebLogin } from "@/components/WebLogin";
 
 const Home = () => {
-  const [activeTab, setActiveTab] = useState("all");
   const { user, wallet, isLoading: authLoading, isInMiniApp, isAuthenticated } = useAuth();
-  const [allChallenges, setAllChallenges] = useState<Challenge[]>([]);
   const [userChallenges, setUserChallenges] = useState<Challenge[]>([]);
   const [loadingChallenges, setLoadingChallenges] = useState(true);
   const [challengeProgresses, setChallengeProgresses] = useState<Record<number, boolean>>({});
@@ -27,14 +24,12 @@ const Home = () => {
   const loadChallenges = async () => {
     try {
       setLoadingChallenges(true);
-      const challenges = await apiService.getChallenges();
-      setAllChallenges(challenges);
 
       if (wallet?.address) {
-        const userChallenges = await apiService.getUserChallenges(wallet.address);
-        setUserChallenges(userChallenges);
+        const userChallengesData = await apiService.getUserChallenges(wallet.address);
+        setUserChallenges(userChallengesData);
 
-        const progressPromises = userChallenges
+        const progressPromises = userChallengesData
           .filter(challenge => isChallengeCompleted(challenge.endDate))
           .map(async (challenge) => {
             const progress = await apiService.getChallengeProgress(challenge.id, wallet.address, 1000);
@@ -194,7 +189,7 @@ const Home = () => {
                 </div>
                 <div className="flex items-center gap-1.5 bg-primary/10 px-3 py-1.5 rounded-full">
                   <Coins className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-sm font-semibold text-primary">{challenge.stake.toFixed(3)} ETH</span>
+                  <span className="text-sm font-semibold text-primary">{challenge.stake.toFixed(3)} USDC</span>
                 </div>
               </div>
             </div>
@@ -212,97 +207,61 @@ const Home = () => {
     <div className="min-h-screen bg-background pb-20">
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Home</h1>
-          <Link to="/profile">
-            <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
-              <AvatarImage
-                src={user?.pfpUrl || "/placeholder.svg"}
-                alt={user?.displayName || "Profile"}
-                className="object-cover"
-              />
-              <AvatarFallback>
-                {user?.displayName?.substring(0, 2).toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
-          </Link>
+          <div>
+            <h1 className="text-2xl font-bold mb-1">Welcome back! 👋</h1>
+            <p className="text-sm text-muted-foreground">Your personal challenges await</p>
+          </div>
+          <Avatar className="h-10 w-10">
+            <AvatarImage
+              src={user?.pfpUrl || "/placeholder.svg"}
+              alt={user?.displayName || "Profile"}
+              className="object-cover"
+            />
+            <AvatarFallback>
+              {user?.displayName?.substring(0, 2).toUpperCase() || "U"}
+            </AvatarFallback>
+          </Avatar>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="all">All Challenges</TabsTrigger>
-            <TabsTrigger value="my">My Challenges</TabsTrigger>
-          </TabsList>
+        {loadingChallenges ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading your challenges...</p>
+            </div>
+          </div>
+        ) : !wallet?.isConnected ? (
+          <Card className="p-8 text-center bg-gradient-card border-border">
+            <p className="text-muted-foreground mb-4">Connect your wallet to see your challenges.</p>
+            <p className="text-sm text-muted-foreground mb-4">Or explore challenges in the Discover tab.</p>
+          </Card>
+        ) : userChallenges.length === 0 ? (
+          <Card className="p-8 text-center bg-gradient-card border-border">
+            <p className="text-muted-foreground mb-4">You haven't joined any challenges yet.</p>
+            <Link to="/discover">
+              <Button className="bg-gradient-primary">Discover Challenges</Button>
+            </Link>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <h2 className="text-lg font-semibold">My Challenges</h2>
+            {userChallenges.map((challenge) => {
+              const isUserJoined = wallet?.address
+                ? apiService.isUserParticipating(challenge, wallet.address)
+                : false;
 
-          <TabsContent value="all" className="flex flex-col gap-4 mt-0">
-            {loadingChallenges ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Loading challenges...</p>
-                </div>
-              </div>
-            ) : allChallenges.length === 0 ? (
-              <Card className="p-8 text-center bg-gradient-card border-border">
-                <p className="text-muted-foreground mb-4">No challenges available yet.</p>
-                <Link to="/create">
-                  <Button className="bg-gradient-primary">Create First Challenge</Button>
-                </Link>
-              </Card>
-            ) : (
-              allChallenges.map((challenge) => {
-                const isUserJoined = wallet?.address
-                  ? apiService.isUserParticipating(challenge, wallet.address)
-                  : false;
-
-                return (
-                  <ChallengeCard
-                    key={challenge.id}
-                    challenge={challenge}
-                    isUserJoined={isUserJoined}
-                  />
-                );
-              })
-            )}
-          </TabsContent>
-
-          <TabsContent value="my" className="flex flex-col gap-4 mt-0">
-            {loadingChallenges ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Loading your challenges...</p>
-                </div>
-              </div>
-            ) : !wallet?.isConnected ? (
-              <Card className="p-8 text-center bg-gradient-card border-border">
-                <p className="text-muted-foreground">Connect your wallet to see your challenges.</p>
-              </Card>
-            ) : userChallenges.length === 0 ? (
-              <Card className="p-8 text-center bg-gradient-card border-border">
-                <p className="text-muted-foreground mb-4">You haven't joined any challenges yet.</p>
-                <Link to="/create">
-                  <Button className="bg-gradient-primary">Create Your First Challenge</Button>
-                </Link>
-              </Card>
-            ) : (
-              userChallenges.map((challenge) => {
-                const isUserJoined = wallet?.address
-                  ? apiService.isUserParticipating(challenge, wallet.address)
-                  : false;
-
-                return (
-                  <ChallengeCard
-                    key={challenge.id}
-                    challenge={challenge}
-                    isUserJoined={isUserJoined}
-                  />
-                );
-              })
-            )}
-          </TabsContent>
-        </Tabs>
+              return (
+                <ChallengeCard
+                  key={challenge.id}
+                  challenge={challenge}
+                  isUserJoined={isUserJoined}
+                />
+              );
+            })}
+          </div>
+        )}
       </main>
 
       <Link to="/create">

@@ -1,3 +1,4 @@
+// pages/CreateChallenge.tsx
 import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,9 @@ const CreateChallenge = () => {
   const { wallet } = useAuth();
   const [beneficiary, setBeneficiary] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userTokenBalance, setUserTokenBalance] = useState(100); // Mock token balance
+  const [stakeAmount, setStakeAmount] = useState("");
+  const [tokensToUse, setTokensToUse] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -265,6 +269,80 @@ const CreateChallenge = () => {
                 />
               </div>
             )}
+
+            {/* Stake Amount */}
+            <div className="space-y-2">
+              <Label htmlFor="stake">Stake Amount (USDC)</Label>
+              <Input
+                id="stake"
+                type="number"
+                placeholder="100"
+                step="0.01"
+                min="0"
+                className="bg-background"
+                value={stakeAmount}
+                onChange={(e) => setStakeAmount(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                This is the amount each participant will stake when joining
+              </p>
+            </div>
+
+            {/* Token Section */}
+            <div className="p-4 rounded-lg bg-gradient-to-br from-purple-500/5 to-purple-500/0 border border-purple-500/20">
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm">Reduce Fee with Tokens</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Your Tokens</Label>
+                    <p className="text-lg font-semibold mt-1">{userTokenBalance}</p>
+                    <p className="text-xs text-muted-foreground">MOTIFY</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="tokensToUse" className="text-xs text-muted-foreground">Use Tokens</Label>
+                    <Input
+                      id="tokensToUse"
+                      type="number"
+                      placeholder="0"
+                      step="1"
+                      min="0"
+                      max={userTokenBalance}
+                      className="bg-background mt-1"
+                      value={tokensToUse}
+                      onChange={(e) => {
+                        const value = Math.min(
+                          parseInt(e.target.value) || 0,
+                          userTokenBalance
+                        );
+                        setTokensToUse(value.toString());
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Token Calculation */}
+                {(stakeAmount || tokensToUse) && (
+                  <div className="p-3 rounded bg-background/50 space-y-1 border border-purple-500/10">
+                    <p className="text-xs text-muted-foreground">
+                      Original: <span className="font-semibold text-foreground">{stakeAmount || '0'} USDC</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Tokens Used: <span className="font-semibold text-purple-600">-{tokensToUse || '0'} MOTIFY</span>
+                    </p>
+                    <div className="h-px bg-border/30 my-1"></div>
+                    <p className="text-xs font-medium">
+                      Final Amount: <span className="text-lg font-semibold text-primary">
+                        {Math.max(0, (parseFloat(stakeAmount) || 0) - (parseFloat(tokensToUse) || 0) * 0.1).toFixed(2)} USDC
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      (1 token = 0.1 USDC reduction)
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Submit Button */}
             <Button

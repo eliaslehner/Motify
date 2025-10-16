@@ -1,4 +1,5 @@
-import { X, Trophy, Target, DollarSign, TrendingUp } from "lucide-react";
+// pages/Profile.tsx
+import { X, Trophy, Target, DollarSign, TrendingUp, Coins } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +14,10 @@ const Profile = () => {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [platformTokens, setPlatformTokens] = useState<{ name: string; balance: number }>({
+    name: "MOTIFY",
+    balance: 125.5, // Mock token balance
+  });
 
   useEffect(() => {
     if (wallet?.address) {
@@ -29,7 +34,7 @@ const Profile = () => {
       const mockStats: UserStats = {
         totalChallengesSucceeded: 12,
         totalChallengesParticipated: 18,
-        totalAmountContributedUsd: 2.245, // in ETH
+        totalAmountContributedUsd: 2.245, // in USDC
       };
 
       const [statsData, userActivities] = await Promise.all([
@@ -63,7 +68,7 @@ const Profile = () => {
     {
       icon: DollarSign,
       label: "Total Contributed",
-      value: `${userStats.totalAmountContributedUsd.toFixed(4)} ETH`,
+      value: `${userStats.totalAmountContributedUsd.toFixed(4)} USDC`,
       color: "text-warning",
       bgColor: "bg-warning-light",
     },
@@ -94,7 +99,7 @@ const Profile = () => {
     {
       icon: DollarSign,
       label: "Total Contributed",
-      value: "0 ETH",
+      value: "0 USDC",
       color: "text-warning",
       bgColor: "bg-warning-light",
     },
@@ -160,6 +165,21 @@ const Profile = () => {
             </div>
 
             <Separator className="mb-6" />
+
+            {/* Token Balance Card */}
+            <Card className="p-6 mb-6 bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shrink-0">
+                  <Coins className="h-7 w-7 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-purple-600 mb-1">Platform Tokens</p>
+                  <h3 className="text-2xl font-bold">{platformTokens.balance.toFixed(1)}</h3>
+                  <p className="text-xs text-muted-foreground">{platformTokens.name}</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">Use tokens to reduce USDC fees on new challenges</p>
+            </Card>
 
             {/* Stats Dashboard */}
             <h2 className="text-xl font-semibold mb-4">Your Stats</h2>
