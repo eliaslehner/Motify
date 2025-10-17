@@ -3,13 +3,56 @@
 // Currently in use in development mode
 
 // USER WALLET ADDRESS - Replace with your actual wallet address for testing
-export const USER_WALLET_ADDRESS = "0xYOUR_WALLET_ADDRESS_HERE";
+export const USER_WALLET_ADDRESS = "0xD919790B73d45527b8a63d0288049C5f235D5b11";
 
 // Token configuration
 export interface TokenConfig {
   name: string;
   balance: number;
   reductionRate: number; // How much USDC is reduced per token (e.g., 0.1 means 1 token = 0.1 USDC reduction)
+}
+
+/**
+ * Calculates the progress percentage based on daily progress data.
+ * @param progressData - The progress data containing daily achievements.
+ * @returns The progress percentage as a number (0-100).
+ */
+export function calculateProgressPercentage(progressData: ChallengeProgress | null): number {
+  if (!progressData || !progressData.progress || progressData.progress.length === 0) {
+    return 0;
+  }
+  const achievedDays = progressData.progress.filter(day => day.achieved).length;
+  return Math.round((achievedDays / progressData.progress.length) * 100);
+}
+
+/**
+ * Determines the status badge text based on current progress and challenge completion status.
+ * @param progressData - The progress data containing daily achievements and current success status.
+ * @param isCompleted - Whether the challenge itself is completed.
+ * @returns An object containing the status text and a corresponding variant ('success', 'warning', 'failed', 'ended').
+ */
+export function getProgressStatus(progressData: ChallengeProgress | null, isCompleted: boolean): { status: string; variant: 'success' | 'warning' | 'failed' | 'ended' } {
+  if (!progressData) {
+    if (isCompleted) {
+      return { status: "Ended", variant: "ended" };
+    }
+    return { status: "No Progress Data", variant: "ended" }; // Or handle differently if needed
+  }
+
+  if (isCompleted) {
+    if (progressData.currentlySucceeded) {
+      return { status: "Completed - Success", variant: "success" };
+    } else {
+      return { status: "Completed - Failed", variant: "failed" };
+    }
+  } else {
+    // Challenge is active
+    if (progressData.currentlySucceeded) {
+      return { status: "On Track", variant: "success" };
+    } else {
+      return { status: "Behind", variant: "warning" };
+    }
+  }
 }
 
 // Activity type definitions
@@ -75,6 +118,10 @@ export interface Challenge {
   charityWallet?: string;
   // API provider (Added to match backend model - helps track which API service is integrated)
   apiProvider?: 'strava' | 'github';
+  isUserParticipating: boolean; // NEW: Check if current user is participating
+  userStakeAmount: number;      // NEW: Current user's stake amount
+  canJoin: boolean;             // NEW: Whether user can join this challenge
+  isCompleted: boolean;         // NEW: Explicit completion status
 }
 
 export interface UserStats {
@@ -215,8 +262,26 @@ function detectServiceType(challenge: BackendChallenge): 'strava' | 'github' | '
   return 'custom';
 }
 
-function mapBackendToFrontend(backendChallenge: BackendChallenge): Challenge {
+function mapBackendToFrontend(backendChallenge: BackendChallenge, userWalletAddress?: string): Challenge {
   const totalStake = backendChallenge.participants.reduce((sum, p) => sum + p.amountUsd, 0);
+  
+  // Calculate participation status
+  const isUserParticipating = userWalletAddress 
+    ? backendChallenge.participants.some(p => 
+        p.walletAddress.toLowerCase() === userWalletAddress.toLowerCase()
+      )
+    : false;
+  
+  const userStakeAmount = userWalletAddress 
+    ? backendChallenge.participants.find(p => 
+        p.walletAddress.toLowerCase() === userWalletAddress.toLowerCase()
+      )?.amountUsd || 0
+    : 0;
+
+  // Determine if user can join (not completed and not already participating)
+  const canJoin = !backendChallenge.completed && 
+                 !isUserParticipating && 
+                 !isChallengeCompleted(backendChallenge.end_date);
 
   return {
     id: backendChallenge.id,
@@ -240,10 +305,15 @@ function mapBackendToFrontend(backendChallenge: BackendChallenge): Challenge {
     activityType: backendChallenge.activity_type,
     charityWallet: backendChallenge.charity_wallet,
     apiProvider: backendChallenge.api_provider, // Map API provider from backend
+    // NEW FIELDS:
+    isUserParticipating,
+    userStakeAmount,
+    canJoin,
+    isCompleted: backendChallenge.completed,
   };
 }
 
-// MOCK DATA
+// MOCK DATA - Updated with more diverse scenarios including USER_WALLET_ADDRESS in more challenges
 const MOCK_CHALLENGES: BackendChallenge[] = [
   {
     id: 1,
@@ -263,13 +333,13 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     is_charity: true,
     activity_type: 'WALK',
     charity_wallet: '0xCharityWallet1234567890123456789012345678',
-    api_provider: 'strava', // Added API provider field
+    api_provider: 'strava',
   },
   {
     id: 2,
     name: "100 GitHub Commits in 30 Days",
     description: "Make at least 100 commits to any GitHub repository in 30 days. Build that streak!",
-    start_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    start_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // Upcoming
     end_date: new Date(Date.now() + 32 * 24 * 60 * 60 * 1000).toISOString(),
     contract_address: "0x2222222222222222222222222222222222222222",
     goal: "100",
@@ -280,7 +350,7 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     service_type: 'github',
     is_charity: false,
     activity_type: 'COMMITS',
-    api_provider: 'github', // Added API provider field
+    api_provider: 'github',
   },
   {
     id: 3,
@@ -291,14 +361,13 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     contract_address: "0x3333333333333333333333333333333333333333",
     goal: "5",
     participants: [
-      { walletAddress: USER_WALLET_ADDRESS, amountUsd: 0.15 },
       { walletAddress: "0x456d35Cc6634C0532925a3b844Bc9e7595f0bEb1", amountUsd: 0.1 },
     ],
     completed: true,
     service_type: 'custom',
     is_charity: true,
     charity_wallet: '0xCharityWallet9876543210987654321098765432',
-    api_provider: undefined, // No API provider for custom challenges
+    api_provider: undefined,
   },
   {
     id: 4,
@@ -309,7 +378,6 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     contract_address: "0x4444444444444444444444444444444444444444",
     goal: "50",
     participants: [
-      { walletAddress: USER_WALLET_ADDRESS, amountUsd: 0.03 },
       { walletAddress: "0x789d35Cc6634C0532925a3b844Bc9e7595f0bEb1", amountUsd: 0.05 },
       { walletAddress: "0xABCd35Cc6634C0532925a3b844Bc9e7595f0bEb1", amountUsd: 0.04 },
       { walletAddress: "0xDEFd35Cc6634C0532925a3b844Bc9e7595f0bEb1", amountUsd: 0.02 },
@@ -318,17 +386,18 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     service_type: 'strava',
     is_charity: false,
     activity_type: 'RUN',
-    api_provider: 'strava', // Added API provider field
+    api_provider: 'strava',
   },
   {
     id: 5,
     name: "Fix 25 GitHub Issues",
     description: "Close and resolve 25 GitHub issues in your repositories within 20 days.",
-    start_date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+    start_date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(), // Upcoming
     end_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
     contract_address: "0x5555555555555555555555555555555555555555",
     goal: "25",
     participants: [
+      { walletAddress: USER_WALLET_ADDRESS, amountUsd: 0.08 }, // YOU JOINED THIS ONE
       { walletAddress: "0x111d35Cc6634C0532925a3b844Bc9e7595f0bEb1", amountUsd: 0.08 },
       { walletAddress: "0x222d35Cc6634C0532925a3b844Bc9e7595f0bEb1", amountUsd: 0.06 },
     ],
@@ -337,7 +406,7 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     is_charity: true,
     activity_type: 'ISSUES_FIXED',
     charity_wallet: '0xCharityWallet5555555555555555555555555555',
-    api_provider: 'github', // Added API provider field
+    api_provider: 'github',
   },
   {
     id: 6,
@@ -347,15 +416,87 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     end_date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
     contract_address: "0x6666666666666666666666666666666666666666",
     goal: "100",
-    participants: [
-      { walletAddress: USER_WALLET_ADDRESS, amountUsd: 0.12 },
-    ],
+    participants: [],
     completed: true,
     service_type: 'strava',
     is_charity: false,
     activity_type: 'RIDE',
-    api_provider: 'strava', // Added API provider field
+    api_provider: 'strava',
   },
+  // NEW CHALLENGES WITH USER PARTICIPATION:
+  {
+    id: 7,
+    name: "GitHub PR Challenge",
+    description: "Create 50 pull requests across repositories in 15 days.",
+    start_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    end_date: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString(),
+    contract_address: "0x7777777777777777777777777777777777777777",
+    goal: "50",
+    participants: [
+      { walletAddress: "0xAAAA111111111111111111111111111111111111", amountUsd: 0.08 },
+      { walletAddress: "0xBBBB222222222222222222222222222222222222", amountUsd: 0.06 },
+    ],
+    completed: false,
+    service_type: 'github',
+    is_charity: false,
+    activity_type: 'PULL_REQUESTS',
+    api_provider: 'github',
+  },
+  {
+    id: 8,
+    name: "Evening Walk Challenge",
+    description: "Take 5000 steps every evening for 20 days.",
+    start_date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    end_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    contract_address: "0x8888888888888888888888888888888888888888",
+    goal: "5000",
+    participants: [
+      { walletAddress: "0xCCCC333333333333333333333333333333333333", amountUsd: 0.04 },
+      { walletAddress: "0xDDDD444444444444444444444444444444444444", amountUsd: 0.03 },
+    ],
+    completed: false,
+    service_type: 'strava',
+    is_charity: true,
+    activity_type: 'WALK',
+    charity_wallet: '0xCharityWalletEFGHIJ1234567890EFGHIJ12345678',
+    api_provider: 'strava',
+  },
+  {
+    id: 9,
+    name: "Upcoming Cycling Challenge",
+    description: "Cycle 150km in 25 days starting next week.",
+    start_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Upcoming
+    end_date: new Date(Date.now() + 32 * 24 * 60 * 60 * 1000).toISOString(),
+    contract_address: "0x9999999999999999999999999999999999999999",
+    goal: "150",
+    participants: [
+      { walletAddress: "0x1111111111111111111111111111111111111111", amountUsd: 0.1 },
+    ],
+    completed: false,
+    service_type: 'strava',
+    is_charity: false,
+    activity_type: 'RIDE',
+    api_provider: 'strava',
+  },
+  {
+    id: 10,
+    name: "Community GitHub Challenge",
+    description: "Contribute to 3 different open source projects in 30 days.",
+    start_date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    end_date: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(),
+    contract_address: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    goal: "3",
+    participants: [
+      { walletAddress: "0x2222222222222222222222222222222222222222", amountUsd: 0.2 },
+      { walletAddress: "0x3333333333333333333333333333333333333333", amountUsd: 0.15 },
+    ],
+    completed: false,
+    service_type: 'github',
+    is_charity: true,
+    activity_type: 'COMMITS',
+    charity_wallet: '0xCharityWalletXYZ1234567890XYZ1234567890',
+    api_provider: 'github',
+  }
 ];
 
 // Token configuration for the platform
@@ -375,28 +516,80 @@ class MockApiService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  async getChallenges(): Promise<Challenge[]> {
+  async getChallenges(userWalletAddress?: string): Promise<Challenge[]> {
     await this.delay();
     console.log('📦 [MOCK] Fetching challenges...');
-    return mockChallengesStorage.map(mapBackendToFrontend);
+    return mockChallengesStorage.map(challenge => 
+      mapBackendToFrontend(challenge, userWalletAddress)
+    );
   }
 
-  async getChallenge(id: number): Promise<Challenge | null> {
+  async getChallenge(id: number, userWalletAddress?: string): Promise<Challenge | null> {
     await this.delay();
     console.log(`📦 [MOCK] Fetching challenge ${id}...`);
-    const challenges = await this.getChallenges();
-    return challenges.find(c => c.id === id) || null;
+    const challenge = mockChallengesStorage.find(c => c.id === id);
+    return challenge ? mapBackendToFrontend(challenge, userWalletAddress) : null;
   }
 
   async getUserChallenges(address: string): Promise<Challenge[]> {
     await this.delay();
     console.log(`📦 [MOCK] Fetching challenges for ${address}...`);
-    const allChallenges = await this.getChallenges();
+    const allChallenges = await this.getChallenges(address); // Pass user address for participation status
     return allChallenges.filter(challenge =>
       challenge.participantsList.some(p =>
         p.walletAddress.toLowerCase() === address.toLowerCase()
       )
     );
+  }
+
+  // Add these methods to your MockApiService class
+
+  async canUserJoinChallenge(challengeId: number, walletAddress: string): Promise<boolean> {
+    const challenge = mockChallengesStorage.find(c => c.id === challengeId);
+    if (!challenge) return false;
+    
+    const isCompleted = isChallengeCompleted(challenge.end_date);
+    const isParticipating = challenge.participants.some(p =>
+      p.walletAddress.toLowerCase() === walletAddress.toLowerCase()
+    );
+    
+    return !isCompleted && !isParticipating;
+  }
+
+  async getChallengeParticipationStatus(challengeId: number, walletAddress: string): Promise<{
+    isParticipating: boolean;
+    canJoin: boolean;
+    userStake: number;
+    challengeStatus: 'active' | 'upcoming' | 'completed';
+  }> {
+    const challenge = mockChallengesStorage.find(c => c.id === challengeId);
+    if (!challenge) {
+      throw new Error('Challenge not found');
+    }
+
+    const isParticipating = challenge.participants.some(p =>
+      p.walletAddress.toLowerCase() === walletAddress.toLowerCase()
+    );
+
+    const userStake = challenge.participants.find(p =>
+      p.walletAddress.toLowerCase() === walletAddress.toLowerCase()
+    )?.amountUsd || 0;
+
+    const canJoin = await this.canUserJoinChallenge(challengeId, walletAddress);
+    
+    let challengeStatus: 'active' | 'upcoming' | 'completed' = 'active';
+    if (isChallengeCompleted(challenge.end_date)) {
+      challengeStatus = 'completed';
+    } else if (isChallengeUpcoming(challenge.start_date)) {
+      challengeStatus = 'upcoming';
+    }
+
+    return {
+      isParticipating,
+      canJoin,
+      userStake,
+      challengeStatus,
+    };
   }
 
   async createChallenge(data: {
@@ -445,6 +638,12 @@ class MockApiService {
       throw new Error('Challenge not found');
     }
 
+    // Check if challenge is completed
+    if (isChallengeCompleted(challenge.end_date)) {
+      throw new Error('Challenge has already ended');
+    }
+
+    // Check if user is already participating
     const alreadyJoined = challenge.participants.some(
       p => p.walletAddress.toLowerCase() === walletAddress.toLowerCase()
     );
@@ -453,7 +652,15 @@ class MockApiService {
       throw new Error('Already participating in this challenge');
     }
 
-    challenge.participants.push({ walletAddress, amountUsd });
+    // Check if challenge has started but not completed
+    if (isChallengeActive(challenge.start_date, challenge.end_date)) {
+      challenge.participants.push({ walletAddress, amountUsd });
+    } else if (isChallengeUpcoming(challenge.start_date)) {
+      // Allow joining upcoming challenges
+      challenge.participants.push({ walletAddress, amountUsd });
+    } else {
+      throw new Error('Cannot join this challenge');
+    }
   }
 
   async getChallengeProgress(challengeId: number, walletAddress: string, goal: number = 1000): Promise<ChallengeProgress | null> {
@@ -467,6 +674,11 @@ class MockApiService {
     const start = new Date(challenge.start_date);
     const end = new Date(challenge.end_date);
     const now = new Date();
+
+    // 🔴 Don't show progress if challenge hasn't started
+    if (now < start) {
+      return null; // or return { progress: [], currentlySucceeded: false };
+    }
     
     const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     const daysPassed = Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
@@ -549,6 +761,22 @@ class MockApiService {
       p.walletAddress.toLowerCase() === walletAddress.toLowerCase()
     );
     return participant?.amountUsd || 0;
+  }
+
+  // Add these for debugging purposes
+  debugGetAllChallenges(): BackendChallenge[] {
+    return mockChallengesStorage;
+  }
+
+  debugGetChallengeParticipants(challengeId: number): Array<{walletAddress: string, amountUsd: number}> {
+    const challenge = mockChallengesStorage.find(c => c.id === challengeId);
+    return challenge ? challenge.participants : [];
+  }
+
+  debugResetChallenges(): void {
+    mockChallengesStorage = [...MOCK_CHALLENGES];
+    nextId = Math.max(...MOCK_CHALLENGES.map(c => c.id)) + 1;
+    console.log('📦 [MOCK] Challenges reset to initial state');
   }
 }
 

@@ -14,10 +14,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService, Challenge, isChallengeUpcoming, isChallengeCompleted, isChallengeActive } from "@/services/api";
@@ -48,7 +45,7 @@ const Discover = () => {
   const loadChallenges = async () => {
     try {
       setLoading(true);
-      const allChallenges = await apiService.getChallenges();
+      const allChallenges = await apiService.getChallenges(wallet?.address);
       setChallenges(allChallenges);
     } catch (error) {
       console.error("Failed to load challenges:", error);
@@ -78,14 +75,16 @@ const Discover = () => {
 
     // Apply stake range filter
     if (minStake) {
-      filtered = filtered.filter(
-        (c) => c.stake >= parseFloat(minStake)
-      );
+      const min = parseFloat(minStake);
+      if (!isNaN(min)) {
+        filtered = filtered.filter((c) => c.stake >= min);
+      }
     }
     if (maxStake) {
-      filtered = filtered.filter(
-        (c) => c.stake <= parseFloat(maxStake)
-      );
+      const max = parseFloat(maxStake);
+      if (!isNaN(max)) {
+        filtered = filtered.filter((c) => c.stake <= max);
+      }
     }
 
     // Apply sorting
@@ -99,7 +98,7 @@ const Discover = () => {
       case "ending-soon":
         filtered.sort(
           (a, b) =>
-            new Date(a.originalEndDate).getTime() -
+            new Date(a.originalEndDate).getTime() - // Use originalEndDate
             new Date(b.originalEndDate).getTime()
         );
         break;
@@ -110,7 +109,7 @@ const Discover = () => {
       default:
         filtered.sort(
           (a, b) =>
-            new Date(b.originalStartDate).getTime() -
+            new Date(b.originalStartDate).getTime() - // Use originalStartDate
             new Date(a.originalStartDate).getTime()
         );
         break;
@@ -119,57 +118,24 @@ const Discover = () => {
     setFilteredChallenges(filtered);
   };
 
-  const getServiceInfo = (challenge: Challenge) => {
-    const titleLower = challenge.title.toLowerCase();
-    const descLower = challenge.description.toLowerCase();
-
-    if (
-      titleLower.includes("strava") ||
-      titleLower.includes("steps") ||
-      titleLower.includes("run") ||
-      titleLower.includes("walk")
-    ) {
-      return {
-        name: "STRAVA",
-        logo: "/strava_logo.svg",
-        color: "bg-orange-500",
-      };
-    }
-
-    if (
-      titleLower.includes("github") ||
-      titleLower.includes("commit") ||
-      descLower.includes("github")
-    ) {
-      return { name: "GITHUB", logo: "/github-white.svg", color: "bg-black" };
-    }
-
-    return { name: "CUSTOM", logo: null, color: "bg-primary" };
-  };
-
   const getStatusBadge = (challenge: Challenge) => {
-    if (isChallengeUpcoming(challenge.originalStartDate)) {
+    const { originalStartDate, originalEndDate, isCompleted } = challenge; // Use original dates and isCompleted flag
+
+    if (isChallengeUpcoming(originalStartDate)) {
       return (
         <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border border-orange-500/20 font-medium">
           Upcoming
         </Badge>
       );
     }
-
-    if (isChallengeCompleted(challenge.originalEndDate)) {
+    if (isChallengeCompleted(originalEndDate)) { // Check against originalEndDate
       return (
         <Badge variant="secondary" className="bg-gray-500/10 text-gray-600 border border-gray-500/20 font-medium">
           Ended
         </Badge>
       );
     }
-
-    if (
-      isChallengeActive(
-        challenge.originalStartDate,
-        challenge.originalEndDate
-      )
-    ) {
+    if (isChallengeActive(originalStartDate, originalEndDate)) { // Check against original dates
       return (
         <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium">
           <div className="flex items-center gap-1">
@@ -179,16 +145,17 @@ const Discover = () => {
         </Badge>
       );
     }
-
     return null;
   };
 
   const ChallengeCard = ({ challenge }: { challenge: Challenge }) => {
-    const serviceInfo = getServiceInfo(challenge);
+    const serviceInfo = {
+      name: challenge.serviceType.toUpperCase(),
+      logo: challenge.serviceType === 'strava' ? '/strava_logo.svg' : challenge.serviceType === 'github' ? '/github-white.svg' : null,
+      color: challenge.serviceType === 'strava' ? 'bg-orange-500' : challenge.serviceType === 'github' ? 'bg-black' : 'bg-primary'
+    };
     const isGithub = serviceInfo.name === "GITHUB";
-    const isUserJoined = wallet?.address 
-      ? apiService.isUserParticipating(challenge, wallet.address)
-      : false;
+    const isUserJoined = challenge.isUserParticipating;
 
     return (
       <Link to={`/challenge/${challenge.id}`} className="block group">
@@ -231,45 +198,24 @@ const Discover = () => {
                   </h3>
                 </div>
               </div>
-
               {/* Status and Participation Badge */}
               <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                 {getStatusBadge(challenge)}
-                {/* DESIGN OPTION 1: Checkmark Circle (Current Implementation) - Clean, minimal, clear indicator */}
                 {isUserJoined && (
                   <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white shadow-md">
                     <Check className="h-4 w-4" />
                   </div>
                 )}
-                
-                {/* DESIGN OPTION 2: Badge with text
-                {isUserJoined && (
-                  <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium text-xs">
-                    Joined
-                  </Badge>
-                )}
-                */}
-                
-                {/* DESIGN OPTION 3: Icon with tooltip
-                {isUserJoined && (
-                  <div className="flex items-center justify-center w-6 h-6 rounded bg-green-500/20" title="You're participating">
-                    <Check className="h-3.5 w-3.5 text-green-600" />
-                  </div>
-                )}
-                */}
               </div>
             </div>
-
             <p className="text-sm text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
               {challenge.description}
             </p>
-
             <div className="flex items-center justify-between pt-4 border-t border-border/50">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
                 <span className="font-medium">{challenge.duration}</span>
               </div>
-
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-full">
                   <Users className="h-3.5 w-3.5 text-muted-foreground" />

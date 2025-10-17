@@ -24,24 +24,22 @@ const Home = () => {
   const loadChallenges = async () => {
     try {
       setLoadingChallenges(true);
-
       if (wallet?.address) {
+        // Pass wallet address to get user-specific challenge data (isUserParticipating, etc.)
         const userChallengesData = await apiService.getUserChallenges(wallet.address);
         setUserChallenges(userChallengesData);
-
+        // Fetch progress for completed user challenges
         const progressPromises = userChallengesData
-          .filter(challenge => isChallengeCompleted(challenge.endDate))
+          .filter(challenge => isChallengeCompleted(challenge.originalEndDate)) // Use originalEndDate
           .map(async (challenge) => {
             const progress = await apiService.getChallengeProgress(challenge.id, wallet.address, 1000);
             return { challengeId: challenge.id, succeeded: progress?.currentlySucceeded || false };
           });
-
         const progressResults = await Promise.all(progressPromises);
         const progressMap = progressResults.reduce((acc, result) => {
           acc[result.challengeId] = result.succeeded;
           return acc;
         }, {} as Record<number, boolean>);
-
         setChallengeProgresses(progressMap);
       }
     } catch (error) {
@@ -52,23 +50,8 @@ const Home = () => {
     }
   };
 
-  const getServiceInfo = (challenge: Challenge) => {
-    const titleLower = challenge.title.toLowerCase();
-    const descLower = challenge.description.toLowerCase();
-    
-    if (titleLower.includes('strava') || titleLower.includes('steps') || titleLower.includes('run') || titleLower.includes('walk')) {
-      return { name: 'STRAVA', logo: '/strava_logo.svg', color: 'bg-orange-500' };
-    }
-    
-    if (titleLower.includes('github') || titleLower.includes('commit') || descLower.includes('github')) {
-      return { name: 'GITHUB', logo: '/github-white.svg', color: 'bg-black' };
-    }
-    
-    return { name: 'CUSTOM', logo: null, color: 'bg-primary' };
-  };
-
-  const getStatusBadge = (challenge: Challenge, isUserJoined: boolean) => {
-    const { originalStartDate, originalEndDate } = challenge;
+  const getStatusBadge = (challenge: Challenge, isUserJoined: boolean) => { // isUserJoined parameter kept for clarity, but logic updated
+    const { originalStartDate, originalEndDate, isCompleted } = challenge; // Use original dates and isCompleted flag
 
     if (isChallengeUpcoming(originalStartDate)) {
       return (
@@ -77,20 +60,19 @@ const Home = () => {
         </Badge>
       );
     }
-
-    if (isChallengeCompleted(originalEndDate)) {
+    if (isChallengeCompleted(originalEndDate)) { // Check against originalEndDate
       if (isUserJoined) {
         const succeeded = challengeProgresses[challenge.id];
         if (succeeded) {
           return (
             <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium">
-              Completed
+              Completed - Success
             </Badge>
           );
         } else {
           return (
             <Badge variant="secondary" className="bg-red-500/10 text-red-600 border border-red-500/20 font-medium">
-              Failed
+              Completed - Failed
             </Badge>
           );
         }
@@ -102,8 +84,7 @@ const Home = () => {
         );
       }
     }
-
-    if (isChallengeActive(originalStartDate, originalEndDate)) {
+    if (isChallengeActive(originalStartDate, originalEndDate)) { // Check against original dates
       return (
         <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium">
           <div className="flex items-center gap-1">
@@ -113,25 +94,22 @@ const Home = () => {
         </Badge>
       );
     }
-
     return null;
   };
 
   const ChallengeCard = ({ challenge, isUserJoined }: { challenge: Challenge; isUserJoined: boolean }) => {
-    const serviceInfo = getServiceInfo(challenge);
+    // Use the serviceType field from the challenge object
+    const serviceInfo = {
+      name: challenge.serviceType.toUpperCase(),
+      logo: challenge.serviceType === 'strava' ? '/strava_logo.svg' : challenge.serviceType === 'github' ? '/github-white.svg' : null,
+      color: challenge.serviceType === 'strava' ? 'bg-orange-500' : challenge.serviceType === 'github' ? 'bg-black' : 'bg-primary'
+    };
     const isGithub = serviceInfo.name === 'GITHUB';
-    
+
     return (
       <Link to={`/challenge/${challenge.id}`} className="block group">
         <Card className="p-5 hover:shadow-lg transition-all duration-300 cursor-pointer bg-gradient-to-br from-card to-card/50 border-border/50 hover:border-primary/20 relative overflow-hidden">
-          {/* Subtle background pattern */}
-          <div className="absolute inset-0 opacity-5">
-            <div className="absolute inset-0" style={{
-              backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
-              backgroundSize: '24px 24px'
-            }}></div>
-          </div>
-
+          {/* ... existing card content ... */}
           <div className="relative">
             {/* Header Row */}
             <div className="flex items-start justify-between mb-4">
@@ -153,53 +131,16 @@ const Home = () => {
                   <h3 className="font-bold text-lg leading-tight text-foreground group-hover:text-primary transition-colors">{challenge.title}</h3>
                 </div>
               </div>
-
               {/* Status and Participation Badge */}
               <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                 {getStatusBadge(challenge, isUserJoined)}
-                {/* DESIGN OPTION 1: Checkmark Circle (Current Implementation) - Clean, minimal, clear indicator */}
-                {isUserJoined && (
-                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white shadow-md">
-                    <Check className="h-4 w-4" />
-                  </div>
-                )}
-                
-                {/* DESIGN OPTION 2: Badge with text
-                {isUserJoined && (
-                  <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium text-xs">
-                    Joined
-                  </Badge>
-                )}
-                */}
-                
-                {/* DESIGN OPTION 3: Icon with tooltip
-                {isUserJoined && (
-                  <div className="flex items-center justify-center w-6 h-6 rounded bg-green-500/20" title="You're participating">
-                    <Check className="h-3.5 w-3.5 text-green-600" />
-                  </div>
-                )}
-                */}
-                
-                {/* DESIGN OPTION 4: Corner ribbon (positioned absolute on card)
-                {isUserJoined && (
-                  <div className="absolute top-0 right-0 w-0 h-0 border-l-[50px] border-l-transparent border-t-[50px] border-t-green-500">
-                    <Check className="h-3 w-3 text-white absolute -top-10 -right-4" />
-                  </div>
-                )}
-                */}
-                
-                {/* DESIGN OPTION 5: Left border accent
-                Add to Card className when isUserJoined: 
-                className={`... ${isUserJoined ? 'border-l-4 border-l-green-500' : ''}`}
-                */}
+                {/* Dont show check mark if user has already joined */}
               </div>
             </div>
-
             {/* Description */}
             <p className="text-sm text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
               {challenge.description}
             </p>
-
             {/* Stats Row */}
             <div className="flex items-center justify-between pt-4 border-t border-border/50">
               {/* Duration */}
@@ -207,7 +148,6 @@ const Home = () => {
                 <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
                 <span className="font-medium">{challenge.duration}</span>
               </div>
-
               {/* Participants and Stake */}
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-full">
@@ -239,7 +179,7 @@ const Home = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold mb-1">My Challenges</h1>
-            <p className="text-sm text-muted-foreground">Bet on yourself</p>
+            <p className="text-sm text-muted-foreground">Give it your all!</p>
           </div>
           <Avatar className="h-10 w-10">
             <AvatarImage
@@ -278,10 +218,8 @@ const Home = () => {
           <div className="flex flex-col gap-4">
             <h2 className="text-lg font-semibold">My Challenges</h2>
             {userChallenges.map((challenge) => {
-              const isUserJoined = wallet?.address
-                ? apiService.isUserParticipating(challenge, wallet.address)
-                : false;
-
+              // Use the field from the challenge object
+              const isUserJoined = challenge.isUserParticipating; // Simplified
               return (
                 <ChallengeCard
                   key={challenge.id}

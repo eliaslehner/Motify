@@ -1,5 +1,5 @@
 // pages/CreateChallenge.tsx
-import { ArrowLeft, Calendar, DollarSign, Target, Heart, Wallet, Info, TrendingUp } from "lucide-react";
+import { ArrowLeft, Calendar, DollarSign, Target, Heart, Wallet, Info, TrendingUp, CalendarIcon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,12 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { TimePicker } from "@/components/ui/time-picker";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { apiService } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { CONTRACT_ADDRESS, MOTIFY_ABI } from "@/contract";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const CreateChallenge = () => {
   const navigate = useNavigate();
@@ -25,11 +30,26 @@ const CreateChallenge = () => {
   const [tokensToUse, setTokensToUse] = useState("");
   const [apiProvider, setApiProvider] = useState("");
   const [activityType, setActivityType] = useState("");
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
+  
+  // Auto-load current time for start, and current time + 1 hour for end
+  const getCurrentTime = () => {
+    const now = new Date();
+    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  };
+  
+  const getEndTime = () => {
+    const now = new Date();
+    now.setHours(now.getHours() + 1);
+    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  };
+  
+  const [startTime, setStartTime] = useState(getCurrentTime());
+  const [endTime, setEndTime] = useState(getEndTime());
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    startDate: "",
-    endDate: "",
     goal: "",
     contractAddress: "",
   });
@@ -63,8 +83,20 @@ const CreateChallenge = () => {
 
   const saveToBackend = async () => {
     try {
-      const startDate = new Date(formData.startDate);
-      const endDate = new Date(formData.endDate);
+      if (!startDate || !endDate) {
+        toast.error("Invalid dates");
+        return;
+      }
+
+      // Combine date and time
+      const [startHour, startMinute] = startTime.split(':').map(Number);
+      const [endHour, endMinute] = endTime.split(':').map(Number);
+      
+      const startDateTime = new Date(startDate);
+      startDateTime.setHours(startHour, startMinute, 0, 0);
+      
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(endHour, endMinute, 59, 999);
 
       let contractAddress = formData.contractAddress;
       if (beneficiary !== "friend") {
@@ -74,8 +106,8 @@ const CreateChallenge = () => {
       const challenge = await apiService.createChallenge({
         name: formData.name,
         description: formData.description,
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
+        start_date: startDateTime.toISOString(),
+        end_date: endDateTime.toISOString(),
         contract_address: contractAddress,
         goal: formData.goal,
         api_provider: apiProvider as 'strava' | 'github',
@@ -99,11 +131,23 @@ const CreateChallenge = () => {
       return;
     }
 
-    const startDate = new Date(formData.startDate);
-    const endDate = new Date(formData.endDate);
+    if (!startDate || !endDate) {
+      toast.error("Please select both start and end dates");
+      return;
+    }
 
-    if (endDate <= startDate) {
-      toast.error("End date must be after start date");
+    // Combine date and time
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    
+    const startDateTime = new Date(startDate);
+    startDateTime.setHours(startHour, startMinute, 0, 0);
+    
+    const endDateTime = new Date(endDate);
+    endDateTime.setHours(endHour, endMinute, 59, 999);
+
+    if (endDateTime <= startDateTime) {
+      toast.error("End date and time must be after start date and time");
       return;
     }
 
@@ -121,7 +165,7 @@ const CreateChallenge = () => {
         return;
       }
 
-      const endTimeTimestamp = Math.floor(endDate.getTime() / 1000);
+      const endTimeTimestamp = Math.floor(endDateTime.getTime() / 1000);
 
       toast.info("Please confirm the transaction in your wallet...");
 
@@ -140,11 +184,30 @@ const CreateChallenge = () => {
   };
 
   const calculateDuration = () => {
-    if (!formData.startDate || !formData.endDate) return null;
-    const start = new Date(formData.startDate);
-    const end = new Date(formData.endDate);
-    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    return days > 0 ? `${days} ${days === 1 ? 'day' : 'days'}` : null;
+    if (!startDate || !endDate) return null;
+    
+    // Combine date and time for accurate duration
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    
+    const startDateTime = new Date(startDate);
+    startDateTime.setHours(startHour, startMinute, 0, 0);
+    
+    const endDateTime = new Date(endDate);
+    endDateTime.setHours(endHour, endMinute, 0, 0);
+    
+    const diffMs = endDateTime.getTime() - startDateTime.getTime();
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (days > 0 && hours > 0) {
+      return `${days} ${days === 1 ? 'day' : 'days'} ${hours}h`;
+    } else if (days > 0) {
+      return `${days} ${days === 1 ? 'day' : 'days'}`;
+    } else if (hours > 0) {
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+    }
+    return null;
   };
 
   const finalAmount = Math.max(0, (parseFloat(stakeAmount) || 0) - (parseFloat(tokensToUse) || 0) * 0.1);
@@ -173,6 +236,28 @@ const CreateChallenge = () => {
       ];
     }
     return [];
+  };
+
+  // Update end time when start time changes to ensure it's at least 1 minute later
+  const handleStartTimeChange = (newStartTime: string) => {
+    setStartTime(newStartTime);
+    
+    // If dates are the same, ensure end time is after start time
+    if (startDate && endDate && startDate.toDateString() === endDate.toDateString()) {
+      const [startHour, startMinute] = newStartTime.split(':').map(Number);
+      const [endHour, endMinute] = endTime.split(':').map(Number);
+      
+      const startMinutes = startHour * 60 + startMinute;
+      const endMinutes = endHour * 60 + endMinute;
+      
+      if (endMinutes <= startMinutes) {
+        // Set end time to 1 hour after start time
+        const newEndMinutes = startMinutes + 60;
+        const newEndHour = Math.floor(newEndMinutes / 60) % 24;
+        const newEndMinute = newEndMinutes % 60;
+        setEndTime(`${newEndHour.toString().padStart(2, '0')}:${newEndMinute.toString().padStart(2, '0')}`);
+      }
+    }
   };
 
   return (
@@ -340,27 +425,64 @@ const CreateChallenge = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="startDate">Start Date</Label>
-                  <Input
-                    id="startDate"
-                    type="date"
-                    required
-                    className="bg-background w-full"
-                    value={formData.startDate}
-                    onChange={handleInputChange}
-                  />
+                <div className="space-y-3">
+                  <Label htmlFor="startDate">Start Date & Time</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-background",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <TimePicker value={startTime} onChange={handleStartTimeChange} />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="endDate">End Date</Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    required
-                    className="bg-background w-full"
-                    value={formData.endDate}
-                    onChange={handleInputChange}
-                  />
+                <div className="space-y-3">
+                  <Label htmlFor="endDate">End Date & Time</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-background",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                        disabled={(date) => {
+                          const today = new Date(new Date().setHours(0, 0, 0, 0));
+                          if (date < today) return true;
+                          if (startDate && date < startDate) return true;
+                          return false;
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <TimePicker value={endTime} onChange={setEndTime} />
                 </div>
               </div>
 

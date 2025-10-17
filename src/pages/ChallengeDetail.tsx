@@ -4,12 +4,11 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { apiService, Challenge, ChallengeProgress, isChallengeActive, isChallengeCompleted, isChallengeUpcoming, getActivityTypeInfo } from "@/services/api";
+import { apiService, Challenge, ChallengeProgress, isChallengeActive, isChallengeCompleted, isChallengeUpcoming, getActivityTypeInfo, calculateProgressPercentage, getProgressStatus  } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from "wagmi";
@@ -114,7 +113,8 @@ const ChallengeDetail = () => {
 
     try {
       setLoading(true);
-      const challengeData = await apiService.getChallenge(parseInt(id));
+      // Pass wallet address to get user-specific challenge data (isUserParticipating, etc.)
+      const challengeData = await apiService.getChallenge(parseInt(id), wallet?.address);
 
       if (!challengeData) {
         toast.error("Challenge not found");
@@ -130,7 +130,7 @@ const ChallengeDetail = () => {
         console.log(`Frontend Challenge ID: ${challengeData.id} -> Blockchain Challenge ID: ${blockchainId}`);
       }
 
-      if (wallet?.address && apiService.isUserParticipating(challengeData, wallet.address)) {
+      if (wallet?.address && challengeData.isUserParticipating) {
         const progressData = await apiService.getChallengeProgress(
           challengeData.id,
           wallet.address,
@@ -237,20 +237,9 @@ const ChallengeDetail = () => {
     }
   };
 
-  const getServiceInfo = (challenge: Challenge) => {
-    if (challenge.serviceType === 'strava') {
-      return { name: 'STRAVA', logo: '/strava_logo.svg', color: 'bg-orange-500' };
-    }
-    if (challenge.serviceType === 'github') {
-      return { name: 'GITHUB', logo: '/github-white.svg', color: 'bg-black' };
-    }
-    return { name: 'CUSTOM', logo: null, color: 'bg-primary' };
-  };
-
   const getStatusBadge = () => {
     if (!challenge) return null;
-
-    const { originalStartDate, originalEndDate } = challenge;
+    const { originalStartDate, originalEndDate, isCompleted } = challenge; // Use original dates and isCompleted flag
 
     if (isChallengeUpcoming(originalStartDate)) {
       return (
@@ -259,8 +248,7 @@ const ChallengeDetail = () => {
         </Badge>
       );
     }
-
-    if (isChallengeCompleted(originalEndDate)) {
+    if (isChallengeCompleted(originalEndDate)) { // Check against originalEndDate
       if (progress && progress.currentlySucceeded) {
         return (
           <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium">
@@ -281,8 +269,7 @@ const ChallengeDetail = () => {
         );
       }
     }
-
-    if (isChallengeActive(originalStartDate, originalEndDate)) {
+    if (isChallengeActive(originalStartDate, originalEndDate)) { // Check against original dates
       return (
         <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium">
           <div className="flex items-center gap-1">
@@ -292,7 +279,6 @@ const ChallengeDetail = () => {
         </Badge>
       );
     }
-
     return null;
   };
 
@@ -357,20 +343,20 @@ const ChallengeDetail = () => {
     );
   }
 
-  const isParticipating = wallet?.address
-    ? apiService.isUserParticipating(challenge, wallet.address)
-    : false;
-  const userStake = wallet?.address
-    ? apiService.getUserStakeAmount(challenge, wallet.address)
-    : 0;
+  const isParticipating = challenge.isUserParticipating; // Simplified
+  const userStake = challenge.userStakeAmount; // Simplified
 
-  let progressPercentage = 0;
-  if (progress?.progress && progress.progress.length > 0) {
-    const achievedDays = progress.progress.filter(day => day.achieved).length;
-    progressPercentage = Math.round((achievedDays / progress.progress.length) * 100);
-  }
 
-  const serviceInfo = getServiceInfo(challenge);
+  const progressPercentage = calculateProgressPercentage(progress);
+
+  const progressStatus = getProgressStatus(progress, challenge ? isChallengeCompleted(challenge.originalEndDate) : false);
+
+
+  const serviceInfo = {
+    name: challenge.serviceType.toUpperCase(),
+    logo: challenge.serviceType === 'strava' ? '/strava_logo.svg' : challenge.serviceType === 'github' ? '/github-white.svg' : null,
+    color: challenge.serviceType === 'strava' ? 'bg-orange-500' : challenge.serviceType === 'github' ? 'bg-black' : 'bg-primary'
+  };
   const isGithub = serviceInfo.name === 'GITHUB';
   const activityInfo = getActivityTypeInfo(challenge.activityType);
 
@@ -386,12 +372,6 @@ const ChallengeDetail = () => {
             <h1 className="text-xl font-bold">Challenge Details</h1>
           </div>
           <div className="flex items-center gap-2">
-            {isParticipating && (
-              <div className="flex items-center gap-1.5 bg-green-500/10 text-green-600 border border-green-500/20 px-3 py-1.5 rounded-full">
-                <Check className="h-3.5 w-3.5" />
-                <span className="text-xs font-semibold">Participating</span>
-              </div>
-            )}
             <Button
               variant="ghost"
               size="icon"
@@ -406,6 +386,33 @@ const ChallengeDetail = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-4 pb-24">
+
+        {/* Participation Status */}
+        {isParticipating && (
+          <Card className="p-4 bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                <Trophy className="h-5 w-5 text-green-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-green-600 mb-1">You're In!</p>
+                <p className="text-xs text-muted-foreground">Staked: <span className="font-mono font-semibold">{userStake.toFixed(4)} USDC</span></p>
+              </div>
+            </div>
+
+            {participantInfo && (
+              <div className="mt-3 pt-3 border-t border-green-500/20 text-xs text-muted-foreground space-y-1">
+                <p className="font-mono">On-chain: {(Number(participantInfo[0]) / 1e18).toFixed(6)} USDC</p>
+                <p>Status: <span className="font-semibold">{
+                  participantInfo[1] === 0 ? "Pending" :
+                    participantInfo[1] === 1 ? "Winner 🎉" :
+                      "Loser"
+                }</span></p>
+              </div>
+            )}
+          </Card>
+        )}
+
         {/* Hero Card with Service Info */}
         <Card className="p-6 bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden">
           <div className="absolute inset-0 opacity-5">
@@ -472,46 +479,14 @@ const ChallengeDetail = () => {
           </div>
         </Card>
 
-        {/* Participation Status */}
-        {isParticipating && (
-          <Card className="p-4 bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
-                <Trophy className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-green-600 mb-1">You're In!</p>
-                <p className="text-xs text-muted-foreground">Staked: <span className="font-mono font-semibold">{userStake.toFixed(4)} USDC</span></p>
-              </div>
-            </div>
-
-            {participantInfo && (
-              <div className="mt-3 pt-3 border-t border-green-500/20 text-xs text-muted-foreground space-y-1">
-                <p className="font-mono">On-chain: {(Number(participantInfo[0]) / 1e18).toFixed(6)} USDC</p>
-                <p>Status: <span className="font-semibold">{
-                  participantInfo[1] === 0 ? "Pending" :
-                    participantInfo[1] === 1 ? "Winner 🎉" :
-                      "Loser"
-                }</span></p>
-              </div>
-            )}
-          </Card>
-        )}
-
         {/* Progress Card */}
-        {isParticipating && (
+        {isParticipating && !isChallengeUpcoming(challenge.originalStartDate) && (
           <Card className="p-6 bg-gradient-to-br from-card to-card/50 border-border/50">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Target className="h-5 w-5 text-primary" />
                 <h3 className="font-semibold text-lg">Your Progress</h3>
               </div>
-              {activityInfo && (
-                <Badge variant="secondary" className="bg-muted text-muted-foreground border-border">
-                  <span className="mr-1">{activityInfo.icon}</span>
-                  {activityInfo.label}
-                </Badge>
-              )}
             </div>
             {progress ? (
               <>
@@ -544,15 +519,15 @@ const ChallengeDetail = () => {
                 </div>
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-sm text-muted-foreground">{progressPercentage}% complete</p>
-                  {progress.currentlySucceeded ? (
-                    <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20">
-                      On Track ✓
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border border-orange-500/20">
-                      Behind
-                    </Badge>
-                  )}
+                  {/* Use the status from the new function */}
+                  <Badge variant="secondary" className={
+                    progressStatus.variant === 'success' ? 'bg-green-500/10 text-green-600 border border-green-500/20' :
+                    progressStatus.variant === 'warning' ? 'bg-orange-500/10 text-orange-600 border border-orange-500/20' :
+                    progressStatus.variant === 'failed' ? 'bg-red-500/10 text-red-600 border border-red-500/20' :
+                    'bg-gray-500/10 text-gray-600 border border-gray-500/20' // For 'ended' or default
+                  }>
+                    {progressStatus.status}
+                  </Badge>
                 </div>
 
                 {/* Daily Progress Grid */}
