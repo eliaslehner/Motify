@@ -1,5 +1,5 @@
 // pages/Profile.tsx
-import { X, Trophy, Target, DollarSign, TrendingUp, Coins } from "lucide-react";
+import { Trophy, Target, DollarSign, TrendingUp, Coins } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,17 +7,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
-import { apiService, UserStats, Activity } from "@/services/api";
+import { apiService, UserStats, Activity, TokenConfig } from "@/services/api";
 
 const Profile = () => {
   const { user, wallet, isLoading } = useAuth();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-  const [platformTokens, setPlatformTokens] = useState<{ name: string; balance: number }>({
-    name: "MOTIFY",
-    balance: 125.5, // Mock token balance
-  });
+  const [platformTokens, setPlatformTokens] = useState<TokenConfig | null>(null);
 
   useEffect(() => {
     if (wallet?.address) {
@@ -30,19 +27,14 @@ const Profile = () => {
 
     try {
       setLoadingData(true);
-      // Mock the stats data
-      const mockStats: UserStats = {
-        totalChallengesSucceeded: 12,
-        totalChallengesParticipated: 18,
-        totalAmountContributedUsd: 2.245, // in USDC
-      };
-
-      const [statsData, userActivities] = await Promise.all([
-        Promise.resolve(mockStats), // Return mocked stats
+      const [statsData, userActivities, tokenData] = await Promise.all([
+        apiService.getUserStats(wallet.address),
         apiService.getUserActivity(wallet.address),
+        apiService.getTokenBalance(wallet.address),
       ]);
       setUserStats(statsData);
       setActivities(userActivities);
+      setPlatformTokens(tokenData);
     } catch (error) {
       console.error('Failed to load user data:', error);
     } finally {
@@ -113,16 +105,11 @@ const Profile = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Profile</h1>
-          <Link to="/">
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <X className="h-5 w-5" />
-            </Button>
-          </Link>
         </div>
       </header>
 
@@ -174,11 +161,22 @@ const Profile = () => {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-purple-600 mb-1">Platform Tokens</p>
-                  <h3 className="text-2xl font-bold">{platformTokens.balance.toFixed(1)}</h3>
-                  <p className="text-xs text-muted-foreground">{platformTokens.name}</p>
+                  <h3 className="text-2xl font-bold">
+                    {platformTokens ? platformTokens.balance.toFixed(1) : '0.0'}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {platformTokens?.name || 'MOTIFY'}
+                  </p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-3">Use tokens to reduce USDC fees on new challenges</p>
+              <p className="text-xs text-muted-foreground mt-3">
+                Use tokens to reduce USDC fees on new challenges
+                {platformTokens && platformTokens.reductionRate > 0 && (
+                  <span className="block mt-1">
+                    1 token = {platformTokens.reductionRate.toFixed(2)} USDC reduction
+                  </span>
+                )}
+              </p>
             </Card>
 
             {/* Stats Dashboard */}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Users, Coins, Check, TrendingUp, Heart, Sliders } from "lucide-react";
+import { Users, Coins, Check, TrendingUp, Heart, Sliders } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -186,6 +186,9 @@ const Discover = () => {
   const ChallengeCard = ({ challenge }: { challenge: Challenge }) => {
     const serviceInfo = getServiceInfo(challenge);
     const isGithub = serviceInfo.name === "GITHUB";
+    const isUserJoined = wallet?.address 
+      ? apiService.isUserParticipating(challenge, wallet.address)
+      : false;
 
     return (
       <Link to={`/challenge/${challenge.id}`} className="block group">
@@ -229,8 +232,31 @@ const Discover = () => {
                 </div>
               </div>
 
+              {/* Status and Participation Badge */}
               <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                 {getStatusBadge(challenge)}
+                {/* DESIGN OPTION 1: Checkmark Circle (Current Implementation) - Clean, minimal, clear indicator */}
+                {isUserJoined && (
+                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white shadow-md">
+                    <Check className="h-4 w-4" />
+                  </div>
+                )}
+                
+                {/* DESIGN OPTION 2: Badge with text
+                {isUserJoined && (
+                  <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium text-xs">
+                    Joined
+                  </Badge>
+                )}
+                */}
+                
+                {/* DESIGN OPTION 3: Icon with tooltip
+                {isUserJoined && (
+                  <div className="flex items-center justify-center w-6 h-6 rounded bg-green-500/20" title="You're participating">
+                    <Check className="h-3.5 w-3.5 text-green-600" />
+                  </div>
+                )}
+                */}
               </div>
             </div>
 
@@ -272,15 +298,8 @@ const Discover = () => {
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-3 justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <h1 className="text-xl font-bold">Discover</h1>
-          </div>
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Discover</h1>
         </div>
       </header>
 

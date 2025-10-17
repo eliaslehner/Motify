@@ -157,11 +157,41 @@ const Home = () => {
               {/* Status and Participation Badge */}
               <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                 {getStatusBadge(challenge, isUserJoined)}
+                {/* DESIGN OPTION 1: Checkmark Circle (Current Implementation) - Clean, minimal, clear indicator */}
                 {isUserJoined && (
                   <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white shadow-md">
                     <Check className="h-4 w-4" />
                   </div>
                 )}
+                
+                {/* DESIGN OPTION 2: Badge with text
+                {isUserJoined && (
+                  <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium text-xs">
+                    Joined
+                  </Badge>
+                )}
+                */}
+                
+                {/* DESIGN OPTION 3: Icon with tooltip
+                {isUserJoined && (
+                  <div className="flex items-center justify-center w-6 h-6 rounded bg-green-500/20" title="You're participating">
+                    <Check className="h-3.5 w-3.5 text-green-600" />
+                  </div>
+                )}
+                */}
+                
+                {/* DESIGN OPTION 4: Corner ribbon (positioned absolute on card)
+                {isUserJoined && (
+                  <div className="absolute top-0 right-0 w-0 h-0 border-l-[50px] border-l-transparent border-t-[50px] border-t-green-500">
+                    <Check className="h-3 w-3 text-white absolute -top-10 -right-4" />
+                  </div>
+                )}
+                */}
+                
+                {/* DESIGN OPTION 5: Left border accent
+                Add to Card className when isUserJoined: 
+                className={`... ${isUserJoined ? 'border-l-4 border-l-green-500' : ''}`}
+                */}
               </div>
             </div>
 
@@ -208,8 +238,8 @@ const Home = () => {
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold mb-1">Welcome back! 👋</h1>
-            <p className="text-sm text-muted-foreground">Your personal challenges await</p>
+            <h1 className="text-2xl font-bold mb-1">My Challenges</h1>
+            <p className="text-sm text-muted-foreground">Bet on yourself</p>
           </div>
           <Avatar className="h-10 w-10">
             <AvatarImage
@@ -267,7 +297,7 @@ const Home = () => {
       <Link to="/create">
         <Button
           size="lg"
-          className="fixed bottom-6 right-6 h-14 w-14 shadow-glow bg-gradient-primary hover:opacity-90"
+          className="fixed bottom-24 right-6 h-14 w-14 shadow-glow bg-gradient-primary hover:opacity-90"
         >
           <Plus className="h-6 w-6" />
         </Button>

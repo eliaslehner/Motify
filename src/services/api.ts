@@ -1,6 +1,17 @@
 // service/api.ts
 // Mock API service for frontend development without backend
 // Currently in use in development mode
+
+// USER WALLET ADDRESS - Replace with your actual wallet address for testing
+export const USER_WALLET_ADDRESS = "0xYOUR_WALLET_ADDRESS_HERE";
+
+// Token configuration
+export interface TokenConfig {
+  name: string;
+  balance: number;
+  reductionRate: number; // How much USDC is reduced per token (e.g., 0.1 means 1 token = 0.1 USDC reduction)
+}
+
 // Activity type definitions
 export type StravaActivityType = 'RUN' | 'WALK' | 'RIDE';
 export type GithubActivityType = 'COMMITS' | 'PULL_REQUESTS' | 'ISSUES_FIXED';
@@ -28,6 +39,9 @@ export interface BackendChallenge {
   activity_type?: ActivityType;
   // Charity wallet address (where funds go if challenge fails)
   charity_wallet?: string;
+  // API provider (Added to track which API is used for the challenge - strava or github)
+  // This helps organize and filter challenges by API provider in the UI
+  api_provider?: 'strava' | 'github';
 }
 
 // Frontend Challenge interface (for UI)
@@ -59,6 +73,8 @@ export interface Challenge {
   activityType?: ActivityType;
   // Charity wallet address
   charityWallet?: string;
+  // API provider (Added to match backend model - helps track which API service is integrated)
+  apiProvider?: 'strava' | 'github';
 }
 
 export interface UserStats {
@@ -96,12 +112,12 @@ export function getActivityTypeInfo(activityType?: ActivityType) {
   if (!activityType) return null;
 
   const activityMap: Record<ActivityType, { label: string; icon: string; unit: string; color: string }> = {
-    'RUN': { label: 'Running', icon: '🏃', unit: 'km', color: 'text-orange-600' },
-    'WALK': { label: 'Walking', icon: '🚶', unit: 'steps', color: 'text-blue-600' },
-    'RIDE': { label: 'Cycling', icon: '🚴', unit: 'km', color: 'text-green-600' },
-    'COMMITS': { label: 'Commits', icon: '💻', unit: 'commits', color: 'text-purple-600' },
+    'RUN': { label: 'Running', icon: '🏃', unit: 'KM', color: 'text-orange-600' },
+    'WALK': { label: 'Walking', icon: '🚶', unit: 'Steps', color: 'text-blue-600' },
+    'RIDE': { label: 'Cycling', icon: '🚴', unit: 'KM', color: 'text-green-600' },
+    'COMMITS': { label: 'Commits', icon: '💻', unit: 'Commits', color: 'text-purple-600' },
     'PULL_REQUESTS': { label: 'Pull Requests', icon: '🔀', unit: 'PRs', color: 'text-indigo-600' },
-    'ISSUES_FIXED': { label: 'Issues Fixed', icon: '🐛', unit: 'issues', color: 'text-pink-600' },
+    'ISSUES_FIXED': { label: 'Issues Fixed', icon: '🐛', unit: 'Issues', color: 'text-pink-600' },
   };
 
   return activityMap[activityType];
@@ -223,6 +239,7 @@ function mapBackendToFrontend(backendChallenge: BackendChallenge): Challenge {
     isCharity: backendChallenge.is_charity || false,
     activityType: backendChallenge.activity_type,
     charityWallet: backendChallenge.charity_wallet,
+    apiProvider: backendChallenge.api_provider, // Map API provider from backend
   };
 }
 
@@ -237,7 +254,7 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     contract_address: "0x1111111111111111111111111111111111111111",
     goal: "10000",
     participants: [
-      { walletAddress: "0xYOUR_WALLET_ADDRESS_HERE", amountUsd: 0.05 },
+      { walletAddress: USER_WALLET_ADDRESS, amountUsd: 0.05 },
       { walletAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb1", amountUsd: 0.1 },
       { walletAddress: "0x9E8B3C5C7d1234567890AbCdEf1234567890AbCd", amountUsd: 0.075 },
     ],
@@ -246,6 +263,7 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     is_charity: true,
     activity_type: 'WALK',
     charity_wallet: '0xCharityWallet1234567890123456789012345678',
+    api_provider: 'strava', // Added API provider field
   },
   {
     id: 2,
@@ -262,6 +280,7 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     service_type: 'github',
     is_charity: false,
     activity_type: 'COMMITS',
+    api_provider: 'github', // Added API provider field
   },
   {
     id: 3,
@@ -272,13 +291,14 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     contract_address: "0x3333333333333333333333333333333333333333",
     goal: "5",
     participants: [
-      { walletAddress: "0xYOUR_WALLET_ADDRESS_HERE", amountUsd: 0.15 },
+      { walletAddress: USER_WALLET_ADDRESS, amountUsd: 0.15 },
       { walletAddress: "0x456d35Cc6634C0532925a3b844Bc9e7595f0bEb1", amountUsd: 0.1 },
     ],
     completed: true,
     service_type: 'custom',
     is_charity: true,
     charity_wallet: '0xCharityWallet9876543210987654321098765432',
+    api_provider: undefined, // No API provider for custom challenges
   },
   {
     id: 4,
@@ -289,7 +309,7 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     contract_address: "0x4444444444444444444444444444444444444444",
     goal: "50",
     participants: [
-      { walletAddress: "0xYOUR_WALLET_ADDRESS_HERE", amountUsd: 0.03 },
+      { walletAddress: USER_WALLET_ADDRESS, amountUsd: 0.03 },
       { walletAddress: "0x789d35Cc6634C0532925a3b844Bc9e7595f0bEb1", amountUsd: 0.05 },
       { walletAddress: "0xABCd35Cc6634C0532925a3b844Bc9e7595f0bEb1", amountUsd: 0.04 },
       { walletAddress: "0xDEFd35Cc6634C0532925a3b844Bc9e7595f0bEb1", amountUsd: 0.02 },
@@ -298,6 +318,7 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     service_type: 'strava',
     is_charity: false,
     activity_type: 'RUN',
+    api_provider: 'strava', // Added API provider field
   },
   {
     id: 5,
@@ -316,6 +337,7 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     is_charity: true,
     activity_type: 'ISSUES_FIXED',
     charity_wallet: '0xCharityWallet5555555555555555555555555555',
+    api_provider: 'github', // Added API provider field
   },
   {
     id: 6,
@@ -326,14 +348,22 @@ const MOCK_CHALLENGES: BackendChallenge[] = [
     contract_address: "0x6666666666666666666666666666666666666666",
     goal: "100",
     participants: [
-      { walletAddress: "0xYOUR_WALLET_ADDRESS_HERE", amountUsd: 0.12 },
+      { walletAddress: USER_WALLET_ADDRESS, amountUsd: 0.12 },
     ],
     completed: true,
     service_type: 'strava',
     is_charity: false,
     activity_type: 'RIDE',
+    api_provider: 'strava', // Added API provider field
   },
 ];
+
+// Token configuration for the platform
+const PLATFORM_TOKEN_CONFIG: TokenConfig = {
+  name: "MOTIFY",
+  balance: 125.5, // Mock balance
+  reductionRate: 0.1, // 1 token = 0.1 USDC reduction
+};
 
 // In-memory storage for new challenges
 let mockChallengesStorage = [...MOCK_CHALLENGES];
@@ -380,6 +410,7 @@ class MockApiService {
     is_charity?: boolean;
     activity_type?: ActivityType;
     charity_wallet?: string;
+    api_provider?: 'strava' | 'github'; // Added API provider parameter to createChallenge
   }): Promise<Challenge> {
     await this.delay(500);
     console.log('📦 [MOCK] Creating challenge...', data);
@@ -398,6 +429,7 @@ class MockApiService {
       is_charity: data.is_charity,
       activity_type: data.activity_type,
       charity_wallet: data.charity_wallet,
+      api_provider: data.api_provider, // Include API provider in new challenge
     };
 
     mockChallengesStorage.push(newChallenge);
@@ -487,6 +519,17 @@ class MockApiService {
       totalChallengesSucceeded: totalSucceeded,
       totalAmountContributedUsd: totalContributed,
     };
+  }
+
+  async getTokenBalance(address: string): Promise<TokenConfig> {
+    await this.delay();
+    console.log(`📦 [MOCK] Fetching token balance for ${address}...`);
+    // In a real app, this would fetch from blockchain or backend
+    return { ...PLATFORM_TOKEN_CONFIG };
+  }
+
+  getTokenReductionAmount(tokensToUse: number): number {
+    return tokensToUse * PLATFORM_TOKEN_CONFIG.reductionRate;
   }
 
   async getUserActivity(address: string): Promise<Activity[]> {

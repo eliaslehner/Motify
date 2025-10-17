@@ -1,5 +1,5 @@
 // pages/ChallengeDetail.tsx
-import { ArrowLeft, Calendar, DollarSign, Users, Trophy, Target, Loader2, TrendingUp, Heart, Wallet, Copy, CheckCircle2, ExternalLink, Share2 } from "lucide-react";
+import { ArrowLeft, Calendar, DollarSign, Users, Trophy, Target, Loader2, TrendingUp, Heart, Wallet, Copy, CheckCircle2, ExternalLink, Share2, Check } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -380,26 +380,32 @@ const ChallengeDetail = () => {
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center gap-3 justify-between">
           <div className="flex items-center gap-3">
-            <Link to="/">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
             <h1 className="text-xl font-bold">Challenge Details</h1>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleShare}
-            title="Share this challenge"
-          >
-            <Share2 className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {isParticipating && (
+              <div className="flex items-center gap-1.5 bg-green-500/10 text-green-600 border border-green-500/20 px-3 py-1.5 rounded-full">
+                <Check className="h-3.5 w-3.5" />
+                <span className="text-xs font-semibold">Participating</span>
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleShare}
+              title="Share this challenge"
+            >
+              <Share2 className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 space-y-4">
+      <main className="container mx-auto px-4 py-6 space-y-4 pb-24">
         {/* Hero Card with Service Info */}
         <Card className="p-6 bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden">
           <div className="absolute inset-0 opacity-5">
@@ -495,12 +501,38 @@ const ChallengeDetail = () => {
         {/* Progress Card */}
         {isParticipating && (
           <Card className="p-6 bg-gradient-to-br from-card to-card/50 border-border/50">
-            <div className="flex items-center gap-2 mb-4">
-              <Target className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-lg">Your Progress</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-lg">Your Progress</h3>
+              </div>
+              {activityInfo && (
+                <Badge variant="secondary" className="bg-muted text-muted-foreground border-border">
+                  <span className="mr-1">{activityInfo.icon}</span>
+                  {activityInfo.label}
+                </Badge>
+              )}
             </div>
             {progress ? (
               <>
+                {/* Goal and Activity Summary */}
+                <div className="mb-4 p-4 bg-background rounded-lg border border-border/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-muted-foreground">Daily Goal</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold text-primary">{challenge.goal}</span>
+                      {activityInfo && (
+                        <span className="text-sm text-muted-foreground">{activityInfo.unit}</span>
+                      )}
+                    </div>
+                  </div>
+                  {activityInfo && (
+                    <p className="text-xs text-muted-foreground">
+                      Complete {challenge.goal} {activityInfo.unit.toLowerCase()} each day to stay on track
+                    </p>
+                  )}
+                </div>
+
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Days Completed</span>
@@ -534,12 +566,15 @@ const ChallengeDetail = () => {
                           ? 'bg-green-500 text-white'
                           : 'bg-muted text-muted-foreground'
                           }`}
-                        title={`Day ${index + 1} (${day.date}): ${day.achieved ? 'Achieved' : 'Not achieved'}${day.value ? ` - ${day.value}` : ''}`}
+                        title={`Day ${index + 1} (${day.date}): ${day.achieved ? 'Achieved' : 'Not achieved'}${day.value ? ` - ${day.value} ${activityInfo?.unit || ''}` : ''}`}
                       >
                         {index + 1}
                       </div>
                     ))}
                   </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Hover over each day to see detailed progress
+                  </p>
                 </div>
               </>
             ) : (
@@ -559,14 +594,14 @@ const ChallengeDetail = () => {
           </div>
           
           <div className="space-y-4">
-            <div className="p-4 bg-background/50 rounded-lg">
-              <div className="flex items-end gap-3 mb-2">
-                <span className="text-4xl font-bold text-primary leading-none">{challenge.goal}</span>
+            <div className="p-4 bg-background rounded-lg">
+              <div className="flex items-end justify-between gap-3 mb-2">
                 {activityInfo && (
                   <span className="text-xl font-medium text-muted-foreground leading-none pb-0.5">
-                    {activityInfo.unit.toUpperCase()}
+                    {activityInfo.unit}
                   </span>
                 )}
+                <span className="text-2xl font-bold text-primary leading-none">{challenge.goal}</span>
               </div>
             </div>
             
@@ -579,10 +614,6 @@ const ChallengeDetail = () => {
                 <span className="text-muted-foreground">{activityInfo.label}</span>
               </div>
             )}
-            
-            <div className="text-sm text-muted-foreground leading-relaxed">
-              Complete the target goal each day to succeed in this challenge.
-            </div>
           </div>
         </Card>
 
@@ -701,12 +732,7 @@ const ChallengeDetail = () => {
                         {index + 1}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <Avatar className="h-9 w-9 inline-block mr-2 shrink-0">
-                          <AvatarFallback className="text-xs">
-                            {participant.walletAddress.substring(2, 4).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <p className="font-mono text-sm font-medium truncate inline">
+                        <p className="font-mono text-sm font-medium truncate">
                           {participant.walletAddress.substring(0, 6)}...
                           {participant.walletAddress.substring(participant.walletAddress.length - 4)}
                         </p>
