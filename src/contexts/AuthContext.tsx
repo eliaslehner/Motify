@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInMiniApp, setIsInMiniApp] = useState(false);
-  
+
   // Wagmi hooks for web wallet connection
   const { address: wagmiAddress, isConnected: wagmiIsConnected } = useAccount();
   const { connect, connectors } = useConnect();
@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (inMiniApp) {
         // Inside Base App - use Context API, auto-connect
         const context = await sdk.context;
-        
+
         if (context?.user) {
           // Set user data from Farcaster context
           setUser({
@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (isInMiniApp) {
         // Get Base Account wallet from SDK (inside mini app)
         const context = await sdk.context;
-        
+
         // Check if we have wallet address from the client context
         const clientContext = context?.client as any;
         if (clientContext?.smartWalletAddress) {
@@ -116,14 +116,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           });
         }
       } else {
-        // On web - use Coinbase Wallet connector
-        // Only trigger the connection, don't set wallet state here
-        // The useEffect will handle setting wallet state when wagmi connects
+        // On web - try to use MetaMask first, then any available connector
+        // Priority: MetaMask > Injected > Coinbase Wallet
+        const metaMaskConnector = connectors.find((c) => c.id === 'metaMask' || c.name === 'MetaMask');
+        const injectedConnector = connectors.find((c) => c.id === 'injected');
         const coinbaseConnector = connectors.find((c) => c.id === 'coinbaseWalletSDK');
-        if (coinbaseConnector) {
-          connect({ connector: coinbaseConnector });
+
+        // Use the first available connector in priority order
+        const connector = metaMaskConnector || injectedConnector || coinbaseConnector || connectors[0];
+
+        if (connector) {
+          console.log('Connecting with:', connector.name || connector.id);
+          connect({ connector });
         } else {
-          console.error('Coinbase Wallet connector not found');
+          console.error('No wallet connector found');
         }
       }
     } catch (error) {
@@ -136,8 +142,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setWallet(null);
   };
 
-  const isAuthenticated = isInMiniApp 
-    ? !!user && !!wallet?.isConnected 
+  const isAuthenticated = isInMiniApp
+    ? !!user && !!wallet?.isConnected
     : !!wallet?.isConnected;
 
   return (
