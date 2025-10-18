@@ -1,18 +1,15 @@
 // pages/Profile.tsx
 import { Trophy, Target, DollarSign, TrendingUp, Coins } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
-import { apiService, UserStats, Activity, TokenConfig } from "@/services/api";
+import { apiService, UserStats, TokenConfig } from "@/services/api";
 
 const Profile = () => {
   const { user, wallet, isLoading } = useAuth();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [activities, setActivities] = useState<Activity[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [platformTokens, setPlatformTokens] = useState<TokenConfig | null>(null);
 
@@ -27,13 +24,11 @@ const Profile = () => {
 
     try {
       setLoadingData(true);
-      const [statsData, userActivities, tokenData] = await Promise.all([
+      const [statsData, tokenData] = await Promise.all([
         apiService.getUserStats(wallet.address),
-        apiService.getUserActivity(wallet.address),
         apiService.getTokenBalance(wallet.address),
       ]);
       setUserStats(statsData);
-      setActivities(userActivities);
       setPlatformTokens(tokenData);
     } catch (error) {
       console.error('Failed to load user data:', error);
@@ -189,32 +184,6 @@ const Profile = () => {
                   </div>
                   <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
                   <p className="text-2xl font-bold">{stat.value}</p>
-                </Card>
-              ))}
-            </div>
-
-            <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
-            <div className="space-y-3">
-              {[
-                { title: "Completed: Run 50km", date: "2 days ago", status: "success" },
-                { title: "Failed: 100 Commits", date: "1 week ago", status: "failed" },
-                { title: "Completed: Read 5 Books", date: "2 weeks ago", status: "success" },
-              ].map((activity, index) => (
-                <Card key={index} className="p-4 bg-gradient-card border-border">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium">{activity.title}</h3>
-                      <p className="text-sm text-muted-foreground">{activity.date}</p>
-                    </div>
-                    <div
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${activity.status === "success"
-                        ? "bg-success-light text-success"
-                        : "bg-destructive-light text-destructive"
-                        }`}
-                    >
-                      {activity.status === "success" ? "Won" : "Lost"}
-                    </div>
-                  </div>
                 </Card>
               ))}
             </div>
