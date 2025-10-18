@@ -13,7 +13,6 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { TimePicker } from "@/components/ui/time-picker";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
-import { apiService } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { CONTRACT_ADDRESS, MOTIFY_ABI } from "@/contract";
@@ -25,11 +24,10 @@ const CreateChallenge = () => {
   const { wallet } = useAuth();
   const [beneficiary, setBeneficiary] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [userTokenBalance, setUserTokenBalance] = useState(100);
-  const [stakeAmount, setStakeAmount] = useState("");
-  const [tokensToUse, setTokensToUse] = useState("");
   const [apiProvider, setApiProvider] = useState("");
   const [activityType, setActivityType] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [whitelistedAddresses, setWhitelistedAddresses] = useState("");
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
 
@@ -76,52 +74,11 @@ const CreateChallenge = () => {
 
   useEffect(() => {
     if (isConfirmed && hash) {
-      toast.success("Challenge created on blockchain!");
-      saveToBackend();
-    }
-  }, [isConfirmed, hash]);
-
-  const saveToBackend = async () => {
-    try {
-      if (!startDate || !endDate) {
-        toast.error("Invalid dates");
-        return;
-      }
-
-      // Combine date and time
-      const [startHour, startMinute] = startTime.split(':').map(Number);
-      const [endHour, endMinute] = endTime.split(':').map(Number);
-
-      const startDateTime = new Date(startDate);
-      startDateTime.setHours(startHour, startMinute, 0, 0);
-
-      const endDateTime = new Date(endDate);
-      endDateTime.setHours(endHour, endMinute, 59, 999);
-
-      let contractAddress = formData.contractAddress;
-      if (beneficiary !== "friend") {
-        contractAddress = charityWallets[beneficiary] || contractAddress;
-      }
-
-      const challenge = await apiService.createChallenge({
-        name: formData.name,
-        description: formData.description,
-        start_date: startDateTime.toISOString(),
-        end_date: endDateTime.toISOString(),
-        contract_address: contractAddress,
-        goal: formData.goal,
-        api_provider: apiProvider as 'strava' | 'github',
-      });
-
       toast.success("Challenge created successfully!");
-      navigate("/");
-    } catch (error) {
-      console.error("Error saving challenge to backend:", error);
-      toast.error("Challenge created on blockchain but failed to save locally.");
-    } finally {
       setIsSubmitting(false);
+      navigate("/");
     }
-  };
+  }, [isConfirmed, hash, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,6 +90,16 @@ const CreateChallenge = () => {
 
     if (!startDate || !endDate) {
       toast.error("Please select both start and end dates");
+      return;
+    }
+
+    if (!apiProvider) {
+      toast.error("Please select an API provider");
+      return;
+    }
+
+    if (!activityType) {
+      toast.error("Please select an activity type");
       return;
     }
 
@@ -154,18 +121,45 @@ const CreateChallenge = () => {
     setIsSubmitting(true);
 
     try {
-      let charityAddress = formData.contractAddress;
+      let recipientAddress = formData.contractAddress;
       if (beneficiary !== "friend") {
-        charityAddress = charityWallets[beneficiary] || charityAddress;
+        recipientAddress = charityWallets[beneficiary] || recipientAddress;
       }
 
-      if (!charityAddress || charityAddress === "") {
+      if (!recipientAddress || recipientAddress === "") {
         toast.error("Please provide a valid beneficiary address");
         setIsSubmitting(false);
         return;
       }
 
+      // Parse whitelisted addresses for private challenges
+      let whitelistedParticipants: `0x${string}`[] = [];
+      if (isPrivate) {
+        if (!whitelistedAddresses.trim()) {
+          toast.error("Please provide at least one address for private challenges");
+          setIsSubmitting(false);
+          return;
+        }
+
+        const addresses = whitelistedAddresses
+          .split(',')
+          .map(addr => addr.trim())
+          .filter(addr => addr.length > 0);
+
+        // Validate addresses
+        const invalidAddresses = addresses.filter(addr => !addr.match(/^0x[a-fA-F0-9]{40}$/));
+        if (invalidAddresses.length > 0) {
+          toast.error("Invalid Ethereum address format detected");
+          setIsSubmitting(false);
+          return;
+        }
+
+        whitelistedParticipants = addresses as `0x${string}`[];
+      }
+
+      const startTimeTimestamp = Math.floor(startDateTime.getTime() / 1000);
       const endTimeTimestamp = Math.floor(endDateTime.getTime() / 1000);
+      const goalAmount = BigInt(formData.goal);
 
       toast.info("Please confirm the transaction in your wallet...");
 
@@ -173,7 +167,17 @@ const CreateChallenge = () => {
         address: CONTRACT_ADDRESS,
         abi: MOTIFY_ABI,
         functionName: "createChallenge",
-        args: [charityAddress, BigInt(endTimeTimestamp)],
+        args: [
+          recipientAddress as `0x${string}`,
+          BigInt(startTimeTimestamp),
+          BigInt(endTimeTimestamp),
+          isPrivate,
+          apiProvider,
+          activityType,
+          goalAmount,
+          formData.description,
+          whitelistedParticipants,
+        ],
       } as any);
 
     } catch (error) {
@@ -210,7 +214,6 @@ const CreateChallenge = () => {
     return null;
   };
 
-  const finalAmount = Math.max(0, (parseFloat(stakeAmount) || 0) - (parseFloat(tokensToUse) || 0) * 0.1);
   const duration = calculateDuration();
 
   // Charity wallet addresses mapping
@@ -514,25 +517,8 @@ const CreateChallenge = () => {
 
             <div className="relative space-y-5">
               <div className="flex items-center gap-2 mb-4">
-                <DollarSign className="h-5 w-5 text-green-600" />
-                <h3 className="font-semibold text-lg">Stake & Beneficiary</h3>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="stake">Stake Amount (USDC)</Label>
-                <Input
-                  id="stake"
-                  type="number"
-                  placeholder="100"
-                  step="0.01"
-                  min="0.00001"
-                  className="bg-background"
-                  value={stakeAmount}
-                  onChange={(e) => setStakeAmount(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Amount each participant will stake when joining (min: 0.00001 USDC)
-                </p>
+                <Heart className="h-5 w-5 text-red-600" />
+                <h3 className="font-semibold text-lg">Beneficiary</h3>
               </div>
 
               <div className="space-y-2">
@@ -607,8 +593,8 @@ const CreateChallenge = () => {
             </div>
           </Card>
 
-          {/* Token Discount Card */}
-          <Card className="p-6 bg-gradient-to-br from-purple-500/5 to-purple-500/0 border-purple-500/20 relative overflow-hidden">
+          {/* Private Challenge Settings */}
+          <Card className="p-6 bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden">
             <div className="absolute inset-0 opacity-5">
               <div className="absolute inset-0" style={{
                 backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
@@ -616,85 +602,48 @@ const CreateChallenge = () => {
               }}></div>
             </div>
 
-            <div className="relative space-y-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-base">Use Tokens for Discount</h3>
-                  <p className="text-xs text-muted-foreground">1 MOTIFY token = 0.1 USDC reduction</p>
-                </div>
+            <div className="relative space-y-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Wallet className="h-5 w-5 text-blue-500" />
+                <h3 className="font-semibold text-lg">Challenge Access</h3>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-background/50 rounded-lg border border-purple-500/10">
-                  <Label className="text-xs text-muted-foreground">Available Tokens</Label>
-                  <p className="text-2xl font-bold text-purple-600 mt-1">{userTokenBalance}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">MOTIFY</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="tokensToUse" className="text-xs text-muted-foreground">Use Tokens</Label>
-                  <Input
-                    id="tokensToUse"
-                    type="number"
-                    placeholder="0"
-                    step="1"
-                    min="0"
-                    max={userTokenBalance}
-                    className="bg-background"
-                    value={tokensToUse}
-                    onChange={(e) => {
-                      const value = Math.min(
-                        parseInt(e.target.value) || 0,
-                        userTokenBalance
-                      );
-                      setTokensToUse(value.toString());
-                    }}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="isPrivate">Private Challenge</Label>
+                  <input
+                    type="checkbox"
+                    id="isPrivate"
+                    checked={isPrivate}
+                    onChange={(e) => setIsPrivate(e.target.checked)}
+                    className="w-4 h-4"
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  {isPrivate ? "Only whitelisted addresses can join" : "Anyone can join this challenge"}
+                </p>
               </div>
 
-              {(stakeAmount || tokensToUse) && (
-                <div className="p-4 rounded-lg bg-background/50 border border-purple-500/10 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Original Stake</span>
-                    <span className="font-medium">{stakeAmount || '0'} USDC</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Token Discount</span>
-                    <span className="font-medium text-purple-600">-{((parseFloat(tokensToUse) || 0) * 0.1).toFixed(2)} USDC</span>
-                  </div>
-                  <div className="h-px bg-border/30 my-2"></div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Final Amount</span>
-                    <span className="text-xl font-bold text-primary">{finalAmount.toFixed(2)} USDC</span>
-                  </div>
-                </div>
-              )}
-
-              {!(stakeAmount || tokensToUse) && (
-                <div className="p-4 rounded-lg bg-background/50 border border-purple-500/10 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Original Stake</span>
-                    <span className="font-medium">0 USDC</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Token Discount</span>
-                    <span className="font-medium text-purple-600">-0.00 USDC</span>
-                  </div>
-                  <div className="h-px bg-border/30 my-2"></div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Final Amount</span>
-                    <span className="text-xl font-bold text-primary">0.00 USDC</span>
-                  </div>
+              {isPrivate && (
+                <div className="space-y-2 p-4 bg-background/50 rounded-lg border border-border/50">
+                  <Label htmlFor="whitelistedAddresses">Whitelisted Addresses</Label>
+                  <Textarea
+                    id="whitelistedAddresses"
+                    placeholder="0x123..., 0x456..., 0x789..."
+                    className="bg-background min-h-[80px] resize-none font-mono text-sm"
+                    value={whitelistedAddresses}
+                    onChange={(e) => setWhitelistedAddresses(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Enter Ethereum addresses separated by commas
+                  </p>
                 </div>
               )}
             </div>
           </Card>
 
           {/* Summary Card */}
-          {formData.name && formData.goal && duration && stakeAmount && (
+          {formData.name && formData.goal && duration && (
             <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/0 border-primary/20">
               <div className="space-y-3">
                 <div className="flex items-center gap-2 mb-3">
@@ -716,8 +665,8 @@ const CreateChallenge = () => {
                     <span className="font-medium">{duration}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Stake per Person</span>
-                    <span className="font-medium">{finalAmount.toFixed(2)} USDC</span>
+                    <span className="text-muted-foreground">Type</span>
+                    <span className="font-medium">{isPrivate ? 'Private' : 'Public'}</span>
                   </div>
                 </div>
               </div>
