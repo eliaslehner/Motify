@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Coins, Check, TrendingUp, Heart, Sliders } from "lucide-react";
+import { Users, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,48 +11,115 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiService, Challenge, isChallengeUpcoming, isChallengeCompleted, isChallengeActive } from "@/services/api";
 import { toast } from "sonner";
+import { useReadContract } from "wagmi";
+import { CONTRACT_ADDRESS, MOTIFY_ABI } from "@/contract";
 
-type SortOption = "stake-high" | "stake-low" | "ending-soon" | "most-popular" | "newest";
+type SortOption = "ending-soon" | "most-popular" | "newest";
 type StatusFilter = "all" | "active" | "upcoming" | "completed";
+
+interface BlockchainChallenge {
+  challengeId: bigint;
+  recipient: string;
+  startTime: bigint;
+  endTime: bigint;
+  isPrivate: boolean;
+  apiType: string;
+  goalType: string;
+  goalAmount: bigint;
+  description: string;
+  totalDonationAmount: bigint;
+  resultsFinalized: boolean;
+  participantCount: bigint;
+}
+
+interface Challenge {
+  id: number;
+  title: string;
+  description: string;
+  serviceType: string;
+  goalType: string;
+  goalAmount: number;
+  startDate: Date;
+  endDate: Date;
+  participants: number;
+  isPrivate: boolean;
+  isCompleted: boolean;
+  duration: string;
+}
 
 const Discover = () => {
   const { wallet } = useAuth();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [filteredChallenges, setFilteredChallenges] = useState<Challenge[]>([]);
-  const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [minStake, setMinStake] = useState<string>("");
-  const [maxStake, setMaxStake] = useState<string>("");
-  const [showFilters, setShowFilters] = useState(false);
+
+  // Read challenges from blockchain
+  const { data: blockchainChallenges, isLoading, isError, refetch } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: MOTIFY_ABI,
+    functionName: 'getAllChallenges',
+    args: [BigInt(100)], // Get up to 100 challenges
+  });
 
   useEffect(() => {
-    loadChallenges();
-  }, [wallet?.address]);
+    if (blockchainChallenges) {
+      const formattedChallenges = (blockchainChallenges as BlockchainChallenge[]).map(bc => {
+        const startDate = new Date(Number(bc.startTime) * 1000);
+        const endDate = new Date(Number(bc.endTime) * 1000);
+        const duration = calculateDuration(startDate, endDate);
+
+        return {
+          id: Number(bc.challengeId),
+          title: "PLACEHOLDER", // Placeholder as requested
+          description: bc.description,
+          serviceType: bc.apiType.toLowerCase(),
+          goalType: bc.goalType,
+          goalAmount: Number(bc.goalAmount),
+          startDate,
+          endDate,
+          participants: Number(bc.participantCount),
+          isPrivate: bc.isPrivate,
+          isCompleted: bc.resultsFinalized,
+          duration,
+        };
+      });
+      setChallenges(formattedChallenges);
+    }
+  }, [blockchainChallenges]);
 
   useEffect(() => {
     filterAndSortChallenges();
-  }, [challenges, sortBy, statusFilter, minStake, maxStake]);
+  }, [challenges, sortBy, statusFilter]);
 
-  const loadChallenges = async () => {
-    try {
-      setLoading(true);
-      const allChallenges = await apiService.getChallenges(wallet?.address);
-      setChallenges(allChallenges);
-    } catch (error) {
-      console.error("Failed to load challenges:", error);
-      toast.error("Failed to load challenges");
-    } finally {
-      setLoading(false);
+  const calculateDuration = (start: Date, end: Date): string => {
+    const diffMs = end.getTime() - start.getTime();
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+    if (days > 0 && hours > 0) {
+      return `${days}d ${hours}h`;
+    } else if (days > 0) {
+      return `${days} ${days === 1 ? 'day' : 'days'}`;
+    } else if (hours > 0) {
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
     }
+    return '< 1h';
+  };
+
+  const isChallengeUpcoming = (startDate: Date): boolean => {
+    return startDate.getTime() > Date.now();
+  };
+
+  const isChallengeActive = (startDate: Date, endDate: Date): boolean => {
+    const now = Date.now();
+    return startDate.getTime() <= now && endDate.getTime() > now;
+  };
+
+  const isChallengeCompleted = (endDate: Date): boolean => {
+    return endDate.getTime() <= Date.now();
   };
 
   const filterAndSortChallenges = () => {
@@ -62,44 +129,19 @@ const Discover = () => {
     filtered = filtered.filter((challenge) => {
       if (statusFilter === "all") return true;
       if (statusFilter === "active")
-        return isChallengeActive(
-          challenge.originalStartDate,
-          challenge.originalEndDate
-        );
+        return isChallengeActive(challenge.startDate, challenge.endDate);
       if (statusFilter === "upcoming")
-        return isChallengeUpcoming(challenge.originalStartDate);
+        return isChallengeUpcoming(challenge.startDate);
       if (statusFilter === "completed")
-        return isChallengeCompleted(challenge.originalEndDate);
+        return isChallengeCompleted(challenge.endDate);
       return true;
     });
 
-    // Apply stake range filter
-    if (minStake) {
-      const min = parseFloat(minStake);
-      if (!isNaN(min)) {
-        filtered = filtered.filter((c) => c.stake >= min);
-      }
-    }
-    if (maxStake) {
-      const max = parseFloat(maxStake);
-      if (!isNaN(max)) {
-        filtered = filtered.filter((c) => c.stake <= max);
-      }
-    }
-
     // Apply sorting
     switch (sortBy) {
-      case "stake-high":
-        filtered.sort((a, b) => b.stake - a.stake);
-        break;
-      case "stake-low":
-        filtered.sort((a, b) => a.stake - b.stake);
-        break;
       case "ending-soon":
         filtered.sort(
-          (a, b) =>
-            new Date(a.originalEndDate).getTime() - // Use originalEndDate
-            new Date(b.originalEndDate).getTime()
+          (a, b) => a.endDate.getTime() - b.endDate.getTime()
         );
         break;
       case "most-popular":
@@ -108,9 +150,7 @@ const Discover = () => {
       case "newest":
       default:
         filtered.sort(
-          (a, b) =>
-            new Date(b.originalStartDate).getTime() - // Use originalStartDate
-            new Date(a.originalStartDate).getTime()
+          (a, b) => b.startDate.getTime() - a.startDate.getTime()
         );
         break;
     }
@@ -119,23 +159,21 @@ const Discover = () => {
   };
 
   const getStatusBadge = (challenge: Challenge) => {
-    const { originalStartDate, originalEndDate, isCompleted } = challenge; // Use original dates and isCompleted flag
-
-    if (isChallengeUpcoming(originalStartDate)) {
+    if (isChallengeUpcoming(challenge.startDate)) {
       return (
         <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border border-orange-500/20 font-medium">
           Upcoming
         </Badge>
       );
     }
-    if (isChallengeCompleted(originalEndDate)) { // Check against originalEndDate
+    if (isChallengeCompleted(challenge.endDate)) {
       return (
         <Badge variant="secondary" className="bg-gray-500/10 text-gray-600 border border-gray-500/20 font-medium">
           Ended
         </Badge>
       );
     }
-    if (isChallengeActive(originalStartDate, originalEndDate)) { // Check against original dates
+    if (isChallengeActive(challenge.startDate, challenge.endDate)) {
       return (
         <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium">
           <div className="flex items-center gap-1">
@@ -155,7 +193,6 @@ const Discover = () => {
       color: challenge.serviceType === 'strava' ? 'bg-orange-500' : challenge.serviceType === 'github' ? 'bg-black' : 'bg-primary'
     };
     const isGithub = serviceInfo.name === "GITHUB";
-    const isUserJoined = challenge.isUserParticipating;
 
     return (
       <Link to={`/challenge/${challenge.id}`} className="block group">
@@ -175,9 +212,8 @@ const Discover = () => {
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-12 h-12 rounded-full ${serviceInfo.color} flex items-center justify-center shadow-md overflow-hidden shrink-0 aspect-square transform-gpu ${
-                    isGithub ? "border-2 border-black" : ""
-                  }`}
+                  className={`w-12 h-12 rounded-full ${serviceInfo.color} flex items-center justify-center shadow-md overflow-hidden shrink-0 aspect-square transform-gpu ${isGithub ? "border-2 border-black" : ""
+                    }`}
                 >
                   {serviceInfo.logo ? (
                     <img
@@ -201,11 +237,6 @@ const Discover = () => {
               {/* Status and Participation Badge */}
               <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                 {getStatusBadge(challenge)}
-                {isUserJoined && (
-                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white shadow-md">
-                    <Check className="h-4 w-4" />
-                  </div>
-                )}
               </div>
             </div>
             <p className="text-sm text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
@@ -221,15 +252,6 @@ const Discover = () => {
                   <Users className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-sm font-semibold text-foreground">
                     {challenge.participants}
-                  </span>
-                  {challenge.isCharity && (
-                    <Heart className="w-3 h-3 text-red-500/70 fill-red-500/20 ml-1" />
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5 bg-primary/10 px-3 py-1.5 rounded-full">
-                  <Coins className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-sm font-semibold text-primary">
-                    {challenge.stake.toFixed(3)} USDC
                   </span>
                 </div>
               </div>
@@ -273,81 +295,35 @@ const Discover = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="newest">Newest</SelectItem>
-                <SelectItem value="stake-high">Highest Stake</SelectItem>
-                <SelectItem value="stake-low">Lowest Stake</SelectItem>
                 <SelectItem value="ending-soon">Ending Soon</SelectItem>
                 <SelectItem value="most-popular">Most Popular</SelectItem>
               </SelectContent>
             </Select>
-
-            {/* Advanced Filters */}
-            <DropdownMenu open={showFilters} onOpenChange={setShowFilters}>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Sliders className="h-4 w-4" />
-                  Filters
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <div className="p-3 space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-foreground">
-                      Min Stake (USDC)
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="0"
-                      value={minStake}
-                      onChange={(e) => setMinStake(e.target.value)}
-                      className="w-full mt-1 px-2 py-1 rounded border border-border bg-background text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-foreground">
-                      Max Stake (USDC)
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="100"
-                      value={maxStake}
-                      onChange={(e) => setMaxStake(e.target.value)}
-                      className="w-full mt-1 px-2 py-1 rounded border border-border bg-background text-sm"
-                    />
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => {
-                      setMinStake("");
-                      setMaxStake("");
-                      setShowFilters(false);
-                    }}
-                  >
-                    Reset
-                  </Button>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
-
-          {(minStake || maxStake) && (
-            <div className="text-sm text-muted-foreground">
-              Stake range: {minStake || "0"} - {maxStake || "∞"} USDC
-            </div>
-          )}
         </div>
       </div>
 
       {/* Challenges List */}
       <main className="container mx-auto px-4 py-6">
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
               <p className="text-muted-foreground">Loading challenges...</p>
             </div>
           </div>
+        ) : isError ? (
+          <Card className="p-8 text-center bg-gradient-to-br from-card to-card/50 border-border/50">
+            <p className="text-muted-foreground mb-4">
+              Failed to load challenges from blockchain.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => refetch()}
+            >
+              Try Again
+            </Button>
+          </Card>
         ) : filteredChallenges.length === 0 ? (
           <Card className="p-8 text-center bg-gradient-to-br from-card to-card/50 border-border/50">
             <p className="text-muted-foreground mb-4">
@@ -358,8 +334,6 @@ const Discover = () => {
               onClick={() => {
                 setStatusFilter("all");
                 setSortBy("newest");
-                setMinStake("");
-                setMaxStake("");
               }}
             >
               Reset Filters
