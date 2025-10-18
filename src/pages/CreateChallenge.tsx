@@ -310,13 +310,19 @@ const CreateChallenge = () => {
                   id="description"
                   placeholder="Describe what participants need to achieve..."
                   required
+                  maxLength={160}
                   className="bg-background min-h-[100px] resize-none"
                   value={formData.description}
                   onChange={handleInputChange}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Be clear about the challenge requirements and expectations
-                </p>
+                <div className="flex justify-between items-center">
+                  <p className="text-xs text-muted-foreground">
+                    Be clear about the challenge requirements and expectations
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formData.description.length}/160
+                  </p>
+                </div>
               </div>
             </div>
           </Card>
