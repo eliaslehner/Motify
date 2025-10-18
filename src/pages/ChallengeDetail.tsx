@@ -8,11 +8,11 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { apiService, Challenge, ChallengeProgress, isChallengeActive, isChallengeCompleted, isChallengeUpcoming, getActivityTypeInfo, calculateProgressPercentage, getProgressStatus  } from "@/services/api";
+import { apiService, Challenge, ChallengeProgress, isChallengeActive, isChallengeCompleted, isChallengeUpcoming, getActivityTypeInfo, calculateProgressPercentage, getProgressStatus } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from "wagmi";
-import { CONTRACT_ADDRESS, MOTIFY_ABI, toBlockchainChallengeId } from "@/contract";
+import { CONTRACT_ADDRESS, MOTIFY_ABI } from "@/contract";
 import { parseEther } from "viem";
 import {
   Dialog,
@@ -125,9 +125,8 @@ const ChallengeDetail = () => {
       setChallenge(challengeData);
 
       if (challengeData.id !== undefined) {
-        const blockchainId = toBlockchainChallengeId(challengeData.id);
-        setChallengeIdOnChain(blockchainId);
-        console.log(`Frontend Challenge ID: ${challengeData.id} -> Blockchain Challenge ID: ${blockchainId}`);
+        setChallengeIdOnChain(challengeData.id);
+        console.log(`Challenge ID: ${challengeData.id}`);
       }
 
       if (wallet?.address && challengeData.isUserParticipating) {
@@ -215,7 +214,7 @@ const ChallengeDetail = () => {
 
   const handleShare = async () => {
     const shareText = `Join my challenge: ${challenge?.title}! 🚀\n\n${challenge?.description}\n\nStake: ${challenge?.stake.toFixed(3)} USDC\nParticipants: ${challenge?.participants}`;
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -522,9 +521,9 @@ const ChallengeDetail = () => {
                   {/* Use the status from the new function */}
                   <Badge variant="secondary" className={
                     progressStatus.variant === 'success' ? 'bg-green-500/10 text-green-600 border border-green-500/20' :
-                    progressStatus.variant === 'warning' ? 'bg-orange-500/10 text-orange-600 border border-orange-500/20' :
-                    progressStatus.variant === 'failed' ? 'bg-red-500/10 text-red-600 border border-red-500/20' :
-                    'bg-gray-500/10 text-gray-600 border border-gray-500/20' // For 'ended' or default
+                      progressStatus.variant === 'warning' ? 'bg-orange-500/10 text-orange-600 border border-orange-500/20' :
+                        progressStatus.variant === 'failed' ? 'bg-red-500/10 text-red-600 border border-red-500/20' :
+                          'bg-gray-500/10 text-gray-600 border border-gray-500/20' // For 'ended' or default
                   }>
                     {progressStatus.status}
                   </Badge>
@@ -567,7 +566,7 @@ const ChallengeDetail = () => {
             <Target className="h-5 w-5 text-primary" />
             <h3 className="font-semibold text-lg">Challenge Goal</h3>
           </div>
-          
+
           <div className="space-y-4">
             <div className="p-4 bg-background rounded-lg">
               <div className="flex items-end justify-between gap-3 mb-2">
@@ -579,10 +578,10 @@ const ChallengeDetail = () => {
                 <span className="text-2xl font-bold text-primary leading-none">{challenge.goal}</span>
               </div>
             </div>
-            
+
             {/* Thin divider */}
             <div className="h-px bg-border/50" />
-            
+
             {activityInfo && (
               <div className="flex items-start gap-2 text-sm">
                 <span className="font-medium text-foreground">Activity type:</span>
