@@ -32,19 +32,19 @@ const CreateChallenge = () => {
   const [activityType, setActivityType] = useState("");
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
-  
+
   // Auto-load current time for start, and current time + 1 hour for end
   const getCurrentTime = () => {
     const now = new Date();
     return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
   };
-  
+
   const getEndTime = () => {
     const now = new Date();
     now.setHours(now.getHours() + 1);
     return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
   };
-  
+
   const [startTime, setStartTime] = useState(getCurrentTime());
   const [endTime, setEndTime] = useState(getEndTime());
   const [formData, setFormData] = useState({
@@ -91,10 +91,10 @@ const CreateChallenge = () => {
       // Combine date and time
       const [startHour, startMinute] = startTime.split(':').map(Number);
       const [endHour, endMinute] = endTime.split(':').map(Number);
-      
+
       const startDateTime = new Date(startDate);
       startDateTime.setHours(startHour, startMinute, 0, 0);
-      
+
       const endDateTime = new Date(endDate);
       endDateTime.setHours(endHour, endMinute, 59, 999);
 
@@ -139,10 +139,10 @@ const CreateChallenge = () => {
     // Combine date and time
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const [endHour, endMinute] = endTime.split(':').map(Number);
-    
+
     const startDateTime = new Date(startDate);
     startDateTime.setHours(startHour, startMinute, 0, 0);
-    
+
     const endDateTime = new Date(endDate);
     endDateTime.setHours(endHour, endMinute, 59, 999);
 
@@ -185,21 +185,21 @@ const CreateChallenge = () => {
 
   const calculateDuration = () => {
     if (!startDate || !endDate) return null;
-    
+
     // Combine date and time for accurate duration
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const [endHour, endMinute] = endTime.split(':').map(Number);
-    
+
     const startDateTime = new Date(startDate);
     startDateTime.setHours(startHour, startMinute, 0, 0);
-    
+
     const endDateTime = new Date(endDate);
     endDateTime.setHours(endHour, endMinute, 0, 0);
-    
+
     const diffMs = endDateTime.getTime() - startDateTime.getTime();
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
+
     if (days > 0 && hours > 0) {
       return `${days} ${days === 1 ? 'day' : 'days'} ${hours}h`;
     } else if (days > 0) {
@@ -241,15 +241,15 @@ const CreateChallenge = () => {
   // Update end time when start time changes to ensure it's at least 1 minute later
   const handleStartTimeChange = (newStartTime: string) => {
     setStartTime(newStartTime);
-    
+
     // If dates are the same, ensure end time is after start time
     if (startDate && endDate && startDate.toDateString() === endDate.toDateString()) {
       const [startHour, startMinute] = newStartTime.split(':').map(Number);
       const [endHour, endMinute] = endTime.split(':').map(Number);
-      
+
       const startMinutes = startHour * 60 + startMinute;
       const endMinutes = endHour * 60 + endMinute;
-      
+
       if (endMinutes <= startMinutes) {
         // Set end time to 1 hour after start time
         const newEndMinutes = startMinutes + 60;
@@ -344,12 +344,12 @@ const CreateChallenge = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="apiProvider">API Provider</Label>
-                <Select 
-                  required 
+                <Select
+                  required
                   onValueChange={(value) => {
                     setApiProvider(value);
                     setActivityType(""); // Reset activity type when provider changes
-                  }} 
+                  }}
                   value={apiProvider}
                 >
                   <SelectTrigger className="bg-background">
@@ -701,7 +701,7 @@ const CreateChallenge = () => {
                   <Info className="h-5 w-5 text-primary" />
                   <h3 className="font-semibold text-lg">Challenge Summary</h3>
                 </div>
-                
+
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Challenge</span>
