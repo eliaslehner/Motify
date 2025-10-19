@@ -18,7 +18,7 @@ const BottomNavigationBar = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-border z-40">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 p-2">
         <div className="flex items-center justify-around h-16">
           {navItems.map(({ path, icon: Icon, label }) => (
             <Link

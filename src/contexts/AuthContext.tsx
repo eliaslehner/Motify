@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.tsx
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { sdk } from '@farcaster/miniapp-sdk';
 import { useAccount, useConnect } from 'wagmi';
