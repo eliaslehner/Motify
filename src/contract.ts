@@ -5,9 +5,9 @@ import motifyTokenABI from "../contract_abi/motifyToken.json";
 
 // Contract Addresses
 export const CONTRACTS = {
-    MOTIFY: "0xb2cbDDFa904A26ac51eC5fe8B3cE5004eA394Aae" as const,
+    MOTIFY: "0x50f8eFD44e2d473521074bc37C0B6732f105716A" as const,
     MOCK_USDC: "0xb608011bCea21a4F40f7CB4Ffc666711AA65d8BF" as const,
-    MOTIFY_TOKEN: "0xA1aDFec554599477984A27b0a8fBD7539eE1b499" as const,
+    MOTIFY_TOKEN: "0x50f8eFD44e2d473521074bc37C0B6732f105716A" as const,
 } as const;
 
 // ABIs

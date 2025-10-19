@@ -291,7 +291,7 @@ const ChallengeDetail = () => {
       if (tokenBalance > BigInt(0)) {
         setApprovalStep('token');
         // Approve unlimited token spending
-        handleApproveToken(BigInt(2) ** BigInt(256) - BigInt(1));
+        handleApproveToken();
       } else {
         setApprovalStep('join');
         // Proceed with joining
@@ -335,7 +335,7 @@ const ChallengeDetail = () => {
     }
   }, [claimIsConfirmed, claimHash, refetchParticipantInfo]);
 
-  const handleApproveUsdc = async (amount: bigint) => {
+  const handleApproveUsdc = async () => {
     if (!address) {
       toast.error("Please connect your wallet first");
       return;
@@ -348,7 +348,7 @@ const ChallengeDetail = () => {
         address: CONTRACTS.MOCK_USDC,
         abi: ABIS.MOCK_USDC,
         functionName: "approve",
-        args: [CONTRACTS.MOTIFY, amount],
+        args: [CONTRACTS.MOTIFY, BigInt(2) ** BigInt(256) - BigInt(1)],
       } as any);
     } catch (error: any) {
       console.error("Error approving USDC:", error);
@@ -356,7 +356,7 @@ const ChallengeDetail = () => {
     }
   };
 
-  const handleApproveToken = async (amount: bigint) => {
+  const handleApproveToken = async () => {
     if (!address) {
       toast.error("Please connect your wallet first");
       return;
@@ -369,7 +369,7 @@ const ChallengeDetail = () => {
         address: CONTRACTS.MOTIFY_TOKEN,
         abi: ABIS.MOTIFY_TOKEN,
         functionName: "approve",
-        args: [CONTRACTS.MOTIFY, amount],
+        args: [CONTRACTS.MOTIFY, BigInt(2) ** BigInt(256) - BigInt(1)],
       } as any);
     } catch (error: any) {
       console.error("Error approving token:", error);
@@ -420,7 +420,7 @@ const ChallengeDetail = () => {
     if (usdcAllowance < usdcAmount) {
       setApprovalStep('usdc');
       setIsJoining(true);
-      await handleApproveUsdc(usdcAmount);
+      await handleApproveUsdc();
       return;
     }
 
@@ -429,7 +429,7 @@ const ChallengeDetail = () => {
       setApprovalStep('token');
       setIsJoining(true);
       // Approve unlimited token spending
-      await handleApproveToken(BigInt(2) ** BigInt(256) - BigInt(1));
+      await handleApproveToken();
       return;
     }
 
