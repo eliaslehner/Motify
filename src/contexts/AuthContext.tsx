@@ -74,8 +74,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             bio: (context.user as any).bio,
           });
 
-          // Auto-connect wallet if available from Base Account
-          await connectWallet();
+          // Auto-connect wallet - PASS THE VALUE DIRECTLY
+          await connectWalletInternal(true, context);
         }
       } else {
         // On regular web - need to manually connect wallet
@@ -88,14 +88,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const connectWallet = async () => {
+  // Internal function that accepts the inMiniApp value directly
+  const connectWalletInternal = async (isMiniApp: boolean, context?: any) => {
     try {
-      if (isInMiniApp) {
+      if (isMiniApp) {
         // Get Base Account wallet from SDK (inside mini app)
-        const context = await sdk.context;
+        const ctx = context || (await sdk.context);
 
         // Check if we have wallet address from the client context
-        const clientContext = context?.client as any;
+        const clientContext = ctx?.client as any;
         if (clientContext?.smartWalletAddress) {
           setWallet({
             address: clientContext.smartWalletAddress,
@@ -117,7 +118,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } else {
         // On web - try to use MetaMask first, then any available connector
-        // Priority: MetaMask > Injected > Coinbase Wallet
         const metaMaskConnector = connectors.find((c) => c.id === 'metaMask' || c.name === 'MetaMask');
         const injectedConnector = connectors.find((c) => c.id === 'injected');
         const coinbaseConnector = connectors.find((c) => c.id === 'coinbaseWalletSDK');
@@ -135,6 +135,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Failed to connect wallet:', error);
     }
+  };
+
+  // Public connectWallet function uses the current state value
+  const connectWallet = async () => {
+    await connectWalletInternal(isInMiniApp);
   };
 
   const disconnect = () => {
