@@ -115,6 +115,45 @@ function formatDuration(startTime: bigint, endTime: bigint): string {
   }
 }
 
+// Helper function to calculate token discount
+// 10,000 tokens = $1 discount
+function calculateTokenDiscount(tokenBalance: bigint, usdcAmount: bigint): {
+  tokensToBurn: bigint;
+  discountAmount: bigint;
+  finalAmount: bigint;
+} {
+  if (tokenBalance === BigInt(0) || usdcAmount === BigInt(0)) {
+    return {
+      tokensToBurn: BigInt(0),
+      discountAmount: BigInt(0),
+      finalAmount: usdcAmount,
+    };
+  }
+
+  // Convert token balance to discount in USDC (6 decimals)
+  // 10,000 tokens (18 decimals) = 1 USDC (6 decimals)
+  // 10,000 tokens = 10,000 * 10^18 = 10^22
+  // 1 USDC = 1 * 10^6 = 10^6
+  // So: tokenBalance / 10^16 = discount in USDC (6 decimals)
+  const maxDiscountFromTokens = tokenBalance / BigInt(10 ** 16);
+
+  // The discount cannot exceed the USDC amount
+  const actualDiscount = maxDiscountFromTokens > usdcAmount ? usdcAmount : maxDiscountFromTokens;
+
+  // Calculate how many tokens to burn based on actual discount
+  // If actualDiscount = discount in USDC (6 decimals), then tokens = actualDiscount * 10^16
+  const tokensToBurn = actualDiscount * BigInt(10 ** 16);
+
+  // Final amount = original - discount
+  const finalAmount = usdcAmount - actualDiscount;
+
+  return {
+    tokensToBurn,
+    discountAmount: actualDiscount,
+    finalAmount,
+  };
+}
+
 const ChallengeDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -130,6 +169,7 @@ const ChallengeDetail = () => {
   const [usdcAllowance, setUsdcAllowance] = useState<bigint>(BigInt(0));
   const [tokenAllowance, setTokenAllowance] = useState<bigint>(BigInt(0));
   const [approvalStep, setApprovalStep] = useState<'none' | 'usdc' | 'token' | 'join'>('none');
+  const [tokensToBurn, setTokensToBurn] = useState<bigint>(BigInt(0));
 
   // Read challenge data from contract
   const { data: challengeData, refetch: refetchChallenge, isLoading: challengeLoading } = useReadContract({
@@ -181,7 +221,8 @@ const ChallengeDetail = () => {
 
   const {
     isLoading: joinIsConfirming,
-    isSuccess: joinIsConfirmed
+    isSuccess: joinIsConfirmed,
+    isError: joinReceiptError
   } = useWaitForTransactionReceipt({
     hash: joinHash,
   });
@@ -196,7 +237,8 @@ const ChallengeDetail = () => {
 
   const {
     isLoading: approveUsdcIsConfirming,
-    isSuccess: approveUsdcIsConfirmed
+    isSuccess: approveUsdcIsConfirmed,
+    isError: approveUsdcReceiptError
   } = useWaitForTransactionReceipt({
     hash: approveUsdcHash,
   });
@@ -211,7 +253,8 @@ const ChallengeDetail = () => {
 
   const {
     isLoading: approveTokenIsConfirming,
-    isSuccess: approveTokenIsConfirmed
+    isSuccess: approveTokenIsConfirmed,
+    isError: approveTokenReceiptError
   } = useWaitForTransactionReceipt({
     hash: approveTokenHash,
   });
@@ -258,11 +301,24 @@ const ChallengeDetail = () => {
     }
   }, [tokenAllowanceData]);
 
+  // Calculate tokens to burn whenever join amount or token balance changes
+  useEffect(() => {
+    if (joinAmount && !isNaN(parseFloat(joinAmount)) && parseFloat(joinAmount) > 0) {
+      const usdcAmount = parseUnits(joinAmount, 6);
+      const { tokensToBurn: calculatedTokens } = calculateTokenDiscount(tokenBalance, usdcAmount);
+      setTokensToBurn(calculatedTokens);
+    } else {
+      setTokensToBurn(BigInt(0));
+    }
+  }, [joinAmount, tokenBalance]);
+
   useEffect(() => {
     if (joinError) {
       console.error("Join transaction error:", joinError);
       toast.error("Transaction failed: " + joinError.message);
       setIsJoining(false);
+      setApprovalStep('none');
+      setShowJoinDialog(false);
     }
   }, [joinError]);
 
@@ -278,9 +334,22 @@ const ChallengeDetail = () => {
   }, [joinIsConfirmed, joinHash, refetchChallenge, refetchParticipantInfo]);
 
   useEffect(() => {
+    if (joinReceiptError) {
+      console.error("Join receipt error:", joinReceiptError);
+      toast.error("Transaction was reverted or failed");
+      setIsJoining(false);
+      setApprovalStep('none');
+      setShowJoinDialog(false);
+    }
+  }, [joinReceiptError]);
+
+  useEffect(() => {
     if (approveUsdcError) {
       console.error("USDC approval error:", approveUsdcError);
       toast.error("USDC approval failed: " + approveUsdcError.message);
+      setIsJoining(false);
+      setApprovalStep('none');
+      setShowJoinDialog(false);
     }
   }, [approveUsdcError]);
 
@@ -288,8 +357,8 @@ const ChallengeDetail = () => {
     if (approveUsdcIsConfirmed && approveUsdcHash) {
       toast.success("USDC approved!");
       refetchUsdcAllowance();
-      // If user has token balance, ask for token approval next
-      if (tokenBalance > BigInt(0)) {
+      // If user has tokens to burn, ask for token approval next
+      if (tokensToBurn > BigInt(0)) {
         setApprovalStep('token');
         // Approve unlimited token spending
         handleApproveToken();
@@ -301,12 +370,25 @@ const ChallengeDetail = () => {
         }, 1000);
       }
     }
-  }, [approveUsdcIsConfirmed, approveUsdcHash, tokenBalance, refetchUsdcAllowance]);
+  }, [approveUsdcIsConfirmed, approveUsdcHash, tokensToBurn, refetchUsdcAllowance]);
+
+  useEffect(() => {
+    if (approveUsdcReceiptError) {
+      console.error("USDC approval receipt error:", approveUsdcReceiptError);
+      toast.error("USDC approval transaction failed");
+      setIsJoining(false);
+      setApprovalStep('none');
+      setShowJoinDialog(false);
+    }
+  }, [approveUsdcReceiptError]);
 
   useEffect(() => {
     if (approveTokenError) {
       console.error("Token approval error:", approveTokenError);
       toast.error("Token approval failed: " + approveTokenError.message);
+      setIsJoining(false);
+      setApprovalStep('none');
+      setShowJoinDialog(false);
     }
   }, [approveTokenError]);
 
@@ -321,6 +403,16 @@ const ChallengeDetail = () => {
       }, 1000);
     }
   }, [approveTokenIsConfirmed, approveTokenHash, refetchTokenAllowance]);
+
+  useEffect(() => {
+    if (approveTokenReceiptError) {
+      console.error("Token approval receipt error:", approveTokenReceiptError);
+      toast.error("Token approval transaction failed");
+      setIsJoining(false);
+      setApprovalStep('none');
+      setShowJoinDialog(false);
+    }
+  }, [approveTokenReceiptError]);
 
   useEffect(() => {
     if (claimError) {
@@ -417,16 +509,19 @@ const ChallengeDetail = () => {
 
     const usdcAmount = parseUnits(joinAmount, 6);
 
-    // Check USDC allowance
-    if (usdcAllowance < usdcAmount) {
+    // Calculate discount and final amount
+    const { finalAmount, discountAmount } = calculateTokenDiscount(tokenBalance, usdcAmount);
+
+    // Check USDC allowance for the final amount (after discount)
+    if (usdcAllowance < finalAmount) {
       setApprovalStep('usdc');
       setIsJoining(true);
       await handleApproveUsdc();
       return;
     }
 
-    // Check if user has tokens and token allowance
-    if (tokenBalance > BigInt(0) && tokenAllowance === BigInt(0)) {
+    // Check if user has tokens to burn and needs token allowance
+    if (tokensToBurn > BigInt(0) && tokenAllowance < tokensToBurn) {
       setApprovalStep('token');
       setIsJoining(true);
       // Approve unlimited token spending
@@ -878,7 +973,7 @@ const ChallengeDetail = () => {
               <Button
                 className="w-full bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 shadow-lg"
                 size="lg"
-                disabled={joinIsPending || joinIsConfirming || approveUsdcIsPending || approveUsdcIsConfirming || approveTokenIsPending || approveTokenIsConfirming}
+                disabled={isJoining}
               >
                 {approveUsdcIsPending || approveUsdcIsConfirming
                   ? "Approving USDC..."
@@ -902,16 +997,17 @@ const ChallengeDetail = () => {
                 {/* Token Balance Info */}
                 {tokenBalance > BigInt(0) && (
                   <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                    <p className="text-xs font-medium text-blue-600 mb-1">💎 Token Balance: {formatUnits(tokenBalance, 18)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Your tokens provide a price reduction: {(Number(tokenBalance) / 10000).toFixed(2)}$ off
+                    <p className="text-xs font-medium text-blue-600 mb-1">💎 Motify Token Balance</p>
+                    <p className="font-mono text-sm font-semibold text-blue-600">{formatUnits(tokenBalance, 18)} tokens</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Your tokens will reduce your payment (10,000 tokens = $1)
                     </p>
                   </div>
                 )}
 
                 {/* Amount Input */}
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Stake Amount (USDC)</Label>
+                  <Label htmlFor="amount">Desired Stake Amount</Label>
                   <Input
                     id="amount"
                     type="number"
@@ -921,12 +1017,114 @@ const ChallengeDetail = () => {
                     value={joinAmount}
                     onChange={(e) => setJoinAmount(e.target.value)}
                     className="bg-background"
-                    disabled={isJoining || approveUsdcIsPending || approveUsdcIsConfirming || approveTokenIsPending || approveTokenIsConfirming || joinIsPending || joinIsConfirming}
+                    disabled={isJoining}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Your stake will be locked in the smart contract until the challenge ends.
+                    Enter the total stake amount you want to commit to this challenge
                   </p>
                 </div>
+
+                {/* Price Breakdown - Always show when amount is entered */}
+                {joinAmount && !isNaN(parseFloat(joinAmount)) && parseFloat(joinAmount) > 0 && (
+                  <div className="p-4 bg-gradient-to-br from-card to-card/50 border-2 border-primary/20 rounded-lg space-y-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <DollarSign className="h-4 w-4 text-primary" />
+                      </div>
+                      <p className="font-semibold text-base">Payment Summary</p>
+                    </div>
+
+                    {/* Stake Amount */}
+                    <div className="space-y-1 pb-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Challenge Stake</span>
+                        <span className="font-mono text-lg font-bold">{joinAmount} USDC</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Amount locked in the smart contract
+                      </p>
+                    </div>
+
+                    <div className="h-px bg-border"></div>
+
+                    {/* Token Discount Section */}
+                    {tokensToBurn > BigInt(0) ? (
+                      <>
+                        <div className="space-y-2 bg-green-500/5 p-3 rounded-lg border border-green-500/20">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-semibold text-green-600">🎉 DISCOUNT APPLIED</span>
+                          </div>
+
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Tokens Used</span>
+                            <span className="font-mono text-sm font-semibold">
+                              🔥 {parseFloat(formatUnits(tokensToBurn, 18)).toLocaleString(undefined, { maximumFractionDigits: 2 })} tokens
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Discount Value</span>
+                            <span className="font-mono text-sm font-semibold text-green-600">
+                              -{formatUnits(calculateTokenDiscount(tokenBalance, parseUnits(joinAmount, 6)).discountAmount, 6)} USDC
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-green-500/20">
+                            💡 These tokens will be permanently burned to reduce your payment
+                          </p>
+                        </div>
+
+                        <div className="h-px bg-border"></div>
+
+                        {/* Final Payment */}
+                        <div className="space-y-1 pt-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-semibold">You Will Pay</span>
+                            <span className="font-mono text-2xl font-bold text-primary">
+                              {formatUnits(calculateTokenDiscount(tokenBalance, parseUnits(joinAmount, 6)).finalAmount, 6)} USDC
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground text-right">
+                            (Original: {joinAmount} USDC - Discount: {formatUnits(calculateTokenDiscount(tokenBalance, parseUnits(joinAmount, 6)).discountAmount, 6)} USDC)
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* No Discount */}
+                        {tokenBalance > BigInt(0) ? (
+                          <div className="space-y-2 bg-blue-500/5 p-3 rounded-lg border border-blue-500/20">
+                            <p className="text-xs text-blue-600">
+                              �                                                             💡 Available tokens: {parseFloat(formatUnits(tokenBalance, 18)).toLocaleString(undefined, { maximumFractionDigits: 2 })} tokens
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              All your tokens will be used for discount (10,000 tokens = $1)
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2 bg-muted/50 p-3 rounded-lg">
+                            <p className="text-xs text-muted-foreground">
+                              💡 No Motify tokens available for discount
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="h-px bg-border"></div>
+
+                        {/* Final Payment - No Discount */}
+                        <div className="space-y-1 pt-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-semibold">You Will Pay</span>
+                            <span className="font-mono text-2xl font-bold text-primary">{joinAmount} USDC</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground text-right">
+                            Full price - no discount applied
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* Approval Status */}
                 {(approveUsdcIsPending || approveUsdcIsConfirming || approveTokenIsPending || approveTokenIsConfirming) && (
@@ -934,7 +1132,7 @@ const ChallengeDetail = () => {
                     {approveUsdcIsPending || approveUsdcIsConfirming ? (
                       <>
                         <p className="text-xs font-medium text-amber-600">Approving USDC...</p>
-                        <p className="text-xs text-muted-foreground mt-1">Step 1 of {tokenBalance > BigInt(0) ? '3' : '2'}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Step 1 of {tokensToBurn > BigInt(0) ? '3' : '2'}</p>
                       </>
                     ) : approveTokenIsPending || approveTokenIsConfirming ? (
                       <>
@@ -948,7 +1146,7 @@ const ChallengeDetail = () => {
                 {/* Join Button */}
                 <Button
                   onClick={handleJoinChallenge}
-                  disabled={isJoining || joinIsPending || joinIsConfirming || approveUsdcIsPending || approveUsdcIsConfirming || approveTokenIsPending || approveTokenIsConfirming}
+                  disabled={isJoining}
                   className="w-full bg-gradient-to-r from-primary to-primary/80"
                   size="lg"
                 >
