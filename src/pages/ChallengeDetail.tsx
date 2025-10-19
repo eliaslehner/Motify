@@ -8,12 +8,12 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { apiService, Challenge, ChallengeProgress, isChallengeActive, isChallengeCompleted, isChallengeUpcoming, getActivityTypeInfo, calculateProgressPercentage, getProgressStatus } from "@/services/api";
+import { getActivityTypeInfo } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from "wagmi";
 import { CONTRACT_ADDRESS, MOTIFY_ABI } from "@/contract";
-import { parseEther } from "viem";
+import { parseUnits, formatUnits } from "viem";
 import {
   Dialog,
   DialogContent,
@@ -23,21 +23,126 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+// Contract data types
+interface ContractChallenge {
+  challengeId: bigint;
+  recipient: string;
+  startTime: bigint;
+  endTime: bigint;
+  isPrivate: boolean;
+  apiType: string;
+  goalType: string;
+  goalAmount: bigint;
+  description: string;
+  totalDonationAmount: bigint;
+  resultsFinalized: boolean;
+  participants: Array<{
+    participantAddress: string;
+    amount: bigint;
+    refundPercentage: bigint;
+    resultDeclared: boolean;
+  }>;
+}
+
+interface ContractParticipantInfo {
+  participantAddress: string;
+  amount: bigint;
+  refundPercentage: bigint;
+  resultDeclared: boolean;
+}
+
+// Helper functions for challenge status
+function isChallengeActive(startTime: bigint, endTime: bigint): boolean {
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  return now >= startTime && now <= endTime;
+}
+
+function isChallengeCompleted(endTime: bigint): boolean {
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  return now > endTime;
+}
+
+function isChallengeUpcoming(startTime: bigint): boolean {
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  return now < startTime;
+}
+
+function formatTimestamp(timestamp: bigint): string {
+  const date = new Date(Number(timestamp) * 1000);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function formatDuration(startTime: bigint, endTime: bigint): string {
+  const now = BigInt(Math.floor(Date.now() / 1000));
+
+  if (now < startTime) {
+    const secondsUntilStart = Number(startTime - now);
+    const daysUntilStart = Math.ceil(secondsUntilStart / (24 * 60 * 60));
+    const hoursUntilStart = Math.ceil(secondsUntilStart / (60 * 60));
+
+    if (daysUntilStart > 1) {
+      return `Starts in ${daysUntilStart} day${daysUntilStart !== 1 ? 's' : ''}`;
+    } else if (hoursUntilStart > 1) {
+      return `Starts in ${hoursUntilStart} hour${hoursUntilStart !== 1 ? 's' : ''}`;
+    } else {
+      const minutesUntilStart = Math.ceil(secondsUntilStart / 60);
+      return `Starts in ${minutesUntilStart} minute${minutesUntilStart !== 1 ? 's' : ''}`;
+    }
+  }
+
+  if (now > endTime) {
+    return 'Completed';
+  }
+
+  const secondsLeft = Number(endTime - now);
+  const daysLeft = Math.ceil(secondsLeft / (24 * 60 * 60));
+  const hoursLeft = Math.ceil(secondsLeft / (60 * 60));
+
+  if (daysLeft > 1) {
+    return `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`;
+  } else if (hoursLeft > 1) {
+    return `${hoursLeft} hour${hoursLeft !== 1 ? 's' : ''} left`;
+  } else {
+    const minutesLeft = Math.ceil(secondsLeft / 60);
+    return `${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''} left`;
+  }
+}
+
 const ChallengeDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { wallet } = useAuth();
   const { address } = useAccount();
-  const [challenge, setChallenge] = useState<Challenge | null>(null);
-  const [progress, setProgress] = useState<ChallengeProgress | null>(null);
+  const [challenge, setChallenge] = useState<ContractChallenge | null>(null);
   const [loading, setLoading] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
   const [joinAmount, setJoinAmount] = useState("");
   const [showJoinDialog, setShowJoinDialog] = useState(false);
-  const [challengeIdOnChain, setChallengeIdOnChain] = useState<number | null>(null);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
 
-  // Wagmi hooks for joining challenge
+  // Read challenge data from contract
+  const { data: challengeData, refetch: refetchChallenge, isLoading: challengeLoading } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: MOTIFY_ABI,
+    functionName: 'getChallengeById',
+    args: id ? [BigInt(id)] : undefined,
+  } as any);
+
+  // Read participant info from contract
+  const { data: participantInfo, refetch: refetchParticipantInfo } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: MOTIFY_ABI,
+    functionName: 'getParticipantInfo',
+    args: id && address ? [BigInt(id), address] : undefined,
+  } as any);
+
+  // Wagmi hooks for joining challenge with USDC
   const {
     writeContract: joinContract,
     data: joinHash,
@@ -67,17 +172,14 @@ const ChallengeDetail = () => {
     hash: claimHash,
   });
 
-  // Read participant info from contract
-  const { data: participantInfo, refetch: refetchParticipantInfo } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: MOTIFY_ABI,
-    functionName: 'getParticipantInfo',
-    args: challengeIdOnChain !== null && address ? [BigInt(challengeIdOnChain), address] : undefined,
-  } as any);
-
   useEffect(() => {
-    loadChallenge();
-  }, [id, wallet?.address]);
+    if (challengeData) {
+      setChallenge(challengeData as ContractChallenge);
+      setLoading(false);
+    } else if (!challengeLoading && id) {
+      setLoading(false);
+    }
+  }, [challengeData, challengeLoading, id]);
 
   useEffect(() => {
     if (joinError) {
@@ -89,10 +191,13 @@ const ChallengeDetail = () => {
 
   useEffect(() => {
     if (joinIsConfirmed && joinHash) {
-      toast.success("Successfully joined challenge on blockchain!");
-      saveJoinToBackend();
+      toast.success("Successfully joined challenge!");
+      refetchChallenge();
+      refetchParticipantInfo();
+      setIsJoining(false);
+      setShowJoinDialog(false);
     }
-  }, [joinIsConfirmed, joinHash]);
+  }, [joinIsConfirmed, joinHash, refetchChallenge, refetchParticipantInfo]);
 
   useEffect(() => {
     if (claimError) {
@@ -106,47 +211,13 @@ const ChallengeDetail = () => {
       toast.success("Successfully claimed your refund!");
       refetchParticipantInfo();
     }
-  }, [claimIsConfirmed, claimHash]);
+  }, [claimIsConfirmed, claimHash, refetchParticipantInfo]);
 
-  const loadChallenge = async () => {
-    if (!id) return;
-
-    try {
-      setLoading(true);
-      // Pass wallet address to get user-specific challenge data (isUserParticipating, etc.)
-      const challengeData = await apiService.getChallenge(parseInt(id), wallet?.address);
-
-      if (!challengeData) {
-        toast.error("Challenge not found");
-        navigate("/");
-        return;
-      }
-
-      setChallenge(challengeData);
-
-      if (challengeData.id !== undefined) {
-        setChallengeIdOnChain(challengeData.id);
-        console.log(`Challenge ID: ${challengeData.id}`);
-      }
-
-      if (wallet?.address && challengeData.isUserParticipating) {
-        const progressData = await apiService.getChallengeProgress(
-          challengeData.id,
-          wallet.address,
-          1000
-        );
-        setProgress(progressData);
-      }
-    } catch (error) {
-      console.error("Error loading challenge:", error);
-      toast.error("Failed to load challenge");
-    } finally {
-      setLoading(false);
+  const handleJoinChallenge = async () => {
+    if (!challenge || !wallet?.isConnected || !id || !address) {
+      toast.error("Please connect your wallet first");
+      return;
     }
-  };
-
-  const saveJoinToBackend = async () => {
-    if (!challenge || !wallet?.address) return;
 
     const amount = parseFloat(joinAmount);
     if (isNaN(amount) || amount < 0.00001) {
@@ -157,14 +228,22 @@ const ChallengeDetail = () => {
     setIsJoining(true);
 
     try {
+      // Use USDC amount (6 decimals for USDC)
+      const usdcAmount = parseUnits(joinAmount, 6);
+      
+      // For now, we'll use the approve method since permit requires:
+      // 1. Correct USDC contract address
+      // 2. Getting the current nonce from USDC contract
+      // 3. Proper domain separator
+      // This is a complex implementation that requires backend support or additional contract calls
+      
       toast.info("Please confirm the transaction in your wallet...");
-
+      
       joinContract({
         address: CONTRACT_ADDRESS,
         abi: MOTIFY_ABI,
-        functionName: "joinChallenge",
-        args: [BigInt(challengeIdOnChain)],
-        value: parseEther(joinAmount),
+        functionName: "joinChallengeWithApprove",
+        args: [BigInt(id), usdcAmount],
       } as any);
 
     } catch (error: any) {
@@ -175,13 +254,8 @@ const ChallengeDetail = () => {
   };
 
   const handleClaimRefund = async () => {
-    if (!wallet?.isConnected) {
+    if (!wallet?.isConnected || !id) {
       toast.error("Please connect your wallet first");
-      return;
-    }
-
-    if (challengeIdOnChain === null) {
-      toast.error("Challenge ID not available. Please try again.");
       return;
     }
 
@@ -191,8 +265,8 @@ const ChallengeDetail = () => {
       claimContract({
         address: CONTRACT_ADDRESS,
         abi: MOTIFY_ABI,
-        functionName: "claim",
-        args: [BigInt(challengeIdOnChain)],
+        functionName: "claimRefund",
+        args: [BigInt(id)],
       } as any);
 
     } catch (error: any) {
@@ -213,12 +287,12 @@ const ChallengeDetail = () => {
   };
 
   const handleShare = async () => {
-    const shareText = `Join my challenge: ${challenge?.title}! 🚀\n\n${challenge?.description}\n\nStake: ${challenge?.stake.toFixed(3)} USDC\nParticipants: ${challenge?.participants}`;
+    const shareText = `Join my challenge: ${challenge?.description}!\n\nGoal: ${challenge?.goalAmount.toString()} ${challenge?.goalType}\nParticipants: ${challenge?.participants.length}`;
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: challenge?.title,
+          title: `Challenge ${id}`,
           text: shareText,
           url: window.location.href,
         });
@@ -238,23 +312,23 @@ const ChallengeDetail = () => {
 
   const getStatusBadge = () => {
     if (!challenge) return null;
-    const { originalStartDate, originalEndDate, isCompleted } = challenge; // Use original dates and isCompleted flag
 
-    if (isChallengeUpcoming(originalStartDate)) {
+    if (isChallengeUpcoming(challenge.startTime)) {
       return (
         <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border border-orange-500/20 font-medium">
           Upcoming
         </Badge>
       );
     }
-    if (isChallengeCompleted(originalEndDate)) { // Check against originalEndDate
-      if (progress && progress.currentlySucceeded) {
+    if (isChallengeCompleted(challenge.endTime)) {
+      // Check if user was successful based on participant info
+      if (participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 3 && participantInfo[2] > 0) { // refundPercentage > 0 means success
         return (
           <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium">
             Completed - Success
           </Badge>
         );
-      } else if (progress) {
+      } else if (participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 2 && participantInfo[1] > 0) { // has stake but no refund
         return (
           <Badge variant="secondary" className="bg-red-500/10 text-red-600 border border-red-500/20 font-medium">
             Completed - Failed
@@ -268,7 +342,7 @@ const ChallengeDetail = () => {
         );
       }
     }
-    if (isChallengeActive(originalStartDate, originalEndDate)) { // Check against original dates
+    if (isChallengeActive(challenge.startTime, challenge.endTime)) {
       return (
         <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium">
           <div className="flex items-center gap-1">
@@ -281,44 +355,7 @@ const ChallengeDetail = () => {
     return null;
   };
 
-  const handleJoinChallenge = async () => {
-    if (!challenge || !wallet?.isConnected) {
-      toast.error("Please connect your wallet first");
-      return;
-    }
-
-    if (challengeIdOnChain === null) {
-      toast.error("Challenge ID not available. Please try again.");
-      return;
-    }
-
-    const amount = parseFloat(joinAmount);
-    if (isNaN(amount) || amount < 0.00001) {
-      toast.error("Minimum stake amount is 0.00001 USDC");
-      return;
-    }
-
-    setIsJoining(true);
-
-    try {
-      toast.info("Please confirm the transaction in your wallet...");
-
-      joinContract({
-        address: CONTRACT_ADDRESS,
-        abi: MOTIFY_ABI,
-        functionName: "joinChallenge",
-        args: [BigInt(challengeIdOnChain)],
-        value: parseEther(joinAmount),
-      } as any);
-
-    } catch (error: any) {
-      console.error("Error joining challenge:", error);
-      toast.error(error.message || "Failed to join challenge");
-      setIsJoining(false);
-    }
-  };
-
-  if (loading) {
+  if (loading || challengeLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -342,22 +379,30 @@ const ChallengeDetail = () => {
     );
   }
 
-  const isParticipating = challenge.isUserParticipating; // Simplified
-  const userStake = challenge.userStakeAmount; // Simplified
+  // Calculate derived values from contract data
+  const isParticipating = address && challenge.participants.some(p =>
+    p.participantAddress.toLowerCase() === address.toLowerCase()
+  );
 
+  const userStake = address
+    ? challenge.participants.find(p =>
+      p.participantAddress.toLowerCase() === address.toLowerCase()
+    )?.amount || BigInt(0)
+    : BigInt(0);
 
-  const progressPercentage = calculateProgressPercentage(progress);
+  const totalStake = challenge.participants.reduce((sum, p) => sum + p.amount, BigInt(0));
 
-  const progressStatus = getProgressStatus(progress, challenge ? isChallengeCompleted(challenge.originalEndDate) : false);
-
-
+  // Determine service info from apiType
   const serviceInfo = {
-    name: challenge.serviceType.toUpperCase(),
-    logo: challenge.serviceType === 'strava' ? '/strava_logo.svg' : challenge.serviceType === 'github' ? '/github-white.svg' : null,
-    color: challenge.serviceType === 'strava' ? 'bg-orange-500' : challenge.serviceType === 'github' ? 'bg-black' : 'bg-primary'
+    name: challenge.apiType.toUpperCase(),
+    logo: challenge.apiType.toLowerCase() === 'strava' ? '/strava_logo.svg' :
+      challenge.apiType.toLowerCase() === 'github' ? '/github-white.svg' : null,
+    color: challenge.apiType.toLowerCase() === 'strava' ? 'bg-orange-500' :
+      challenge.apiType.toLowerCase() === 'github' ? 'bg-black' : 'bg-primary'
   };
+
   const isGithub = serviceInfo.name === 'GITHUB';
-  const activityInfo = getActivityTypeInfo(challenge.activityType);
+  const activityInfo = getActivityTypeInfo(challenge.goalType as any); // Cast since we don't have strict typing
 
   return (
     <div className="min-h-screen bg-background pb-6">
@@ -395,17 +440,16 @@ const ChallengeDetail = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-green-600 mb-1">You're In!</p>
-                <p className="text-xs text-muted-foreground">Staked: <span className="font-mono font-semibold">{userStake.toFixed(4)} USDC</span></p>
+                <p className="text-xs text-muted-foreground">Staked: <span className="font-mono font-semibold">{formatUnits(userStake, 6)} USDC</span></p>
               </div>
             </div>
 
-            {participantInfo && (
+            {participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 4 && (
               <div className="mt-3 pt-3 border-t border-green-500/20 text-xs text-muted-foreground space-y-1">
-                <p className="font-mono">On-chain: {(Number(participantInfo[0]) / 1e18).toFixed(6)} USDC</p>
+                <p className="font-mono">On-chain: {formatUnits(participantInfo[1], 6)} USDC</p>
+                <p>Refund %: <span className="font-semibold">{participantInfo[2].toString()}%</span></p>
                 <p>Status: <span className="font-semibold">{
-                  participantInfo[1] === 0 ? "Pending" :
-                    participantInfo[1] === 1 ? "Winner 🎉" :
-                      "Loser"
+                  participantInfo[3] ? "Result Declared" : "Pending"
                 }</span></p>
               </div>
             )}
@@ -438,14 +482,14 @@ const ChallengeDetail = () => {
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <span className="text-xs font-semibold text-muted-foreground tracking-wider">{serviceInfo.name}</span>
                   {getStatusBadge()}
-                  {challenge.isCharity && (
+                  {challenge.recipient !== "0x0000000000000000000000000000000000000000" && (
                     <Badge variant="secondary" className="bg-red-500/10 text-red-600 border border-red-500/20">
                       <Heart className="w-3 h-3 mr-1 fill-red-500/20" />
                       Charity
                     </Badge>
                   )}
                 </div>
-                <h2 className="text-2xl font-bold mb-2 break-words">{challenge.title}</h2>
+                <h2 className="text-2xl font-bold mb-2 break-words">Challenge #{challenge.challengeId.toString()}</h2>
               </div>
             </div>
 
@@ -462,7 +506,7 @@ const ChallengeDetail = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">Total Pool</p>
-                  <p className="font-semibold text-base truncate">{challenge.stake.toFixed(4)} USDC</p>
+                  <p className="font-semibold text-base truncate">{formatUnits(totalStake, 6)} USDC</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 bg-background/50 p-3 rounded-lg">
@@ -471,94 +515,12 @@ const ChallengeDetail = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">Participants</p>
-                  <p className="font-semibold text-base">{challenge.participants}</p>
+                  <p className="font-semibold text-base">{challenge.participants.length}</p>
                 </div>
               </div>
             </div>
           </div>
         </Card>
-
-        {/* Progress Card */}
-        {isParticipating && !isChallengeUpcoming(challenge.originalStartDate) && (
-          <Card className="p-6 bg-gradient-to-br from-card to-card/50 border-border/50">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold text-lg">Your Progress</h3>
-              </div>
-            </div>
-            {progress ? (
-              <>
-                {/* Goal and Activity Summary */}
-                <div className="mb-4 p-4 bg-background rounded-lg border border-border/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">Daily Goal</span>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-primary">{challenge.goal}</span>
-                      {activityInfo && (
-                        <span className="text-sm text-muted-foreground">{activityInfo.unit}</span>
-                      )}
-                    </div>
-                  </div>
-                  {activityInfo && (
-                    <p className="text-xs text-muted-foreground">
-                      Complete {challenge.goal} {activityInfo.unit.toLowerCase()} each day to stay on track
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Days Completed</span>
-                    <span className="font-medium">
-                      {progress.progress.filter(d => d.achieved).length} / {progress.progress.length}
-                    </span>
-                  </div>
-                  <Progress value={progressPercentage} className="h-3" />
-                </div>
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-sm text-muted-foreground">{progressPercentage}% complete</p>
-                  {/* Use the status from the new function */}
-                  <Badge variant="secondary" className={
-                    progressStatus.variant === 'success' ? 'bg-green-500/10 text-green-600 border border-green-500/20' :
-                      progressStatus.variant === 'warning' ? 'bg-orange-500/10 text-orange-600 border border-orange-500/20' :
-                        progressStatus.variant === 'failed' ? 'bg-red-500/10 text-red-600 border border-red-500/20' :
-                          'bg-gray-500/10 text-gray-600 border border-gray-500/20' // For 'ended' or default
-                  }>
-                    {progressStatus.status}
-                  </Badge>
-                </div>
-
-                {/* Daily Progress Grid */}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Daily Progress</p>
-                  <div className="grid grid-cols-7 gap-1.5">
-                    {progress.progress.map((day, index) => (
-                      <div
-                        key={index}
-                        className={`aspect-square rounded flex items-center justify-center text-xs font-medium transition-colors ${day.achieved
-                          ? 'bg-green-500 text-white'
-                          : 'bg-muted text-muted-foreground'
-                          }`}
-                        title={`Day ${index + 1} (${day.date}): ${day.achieved ? 'Achieved' : 'Not achieved'}${day.value ? ` - ${day.value} ${activityInfo?.unit || ''}` : ''}`}
-                      >
-                        {index + 1}
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Hover over each day to see detailed progress
-                  </p>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-6">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Loading progress...</p>
-              </div>
-            )}
-          </Card>
-        )}
 
         {/* Goal Card */}
         <Card className="p-6 bg-gradient-to-br from-card to-card/50 border-border/50">
@@ -575,7 +537,7 @@ const ChallengeDetail = () => {
                     {activityInfo.unit}
                   </span>
                 )}
-                <span className="text-2xl font-bold text-primary leading-none">{challenge.goal}</span>
+                <span className="text-2xl font-bold text-primary leading-none">{challenge.goalAmount.toString()}</span>
               </div>
             </div>
 
@@ -600,15 +562,15 @@ const ChallengeDetail = () => {
           <div className="space-y-3">
             <div className="flex justify-between items-center gap-4">
               <span className="text-sm text-muted-foreground">Start Date</span>
-              <span className="font-medium text-sm text-right break-words">{challenge.startDate}</span>
+              <span className="font-medium text-sm text-right break-words">{formatTimestamp(challenge.startTime)}</span>
             </div>
             <div className="flex justify-between items-center gap-4">
               <span className="text-sm text-muted-foreground">End Date</span>
-              <span className="font-medium text-sm text-right break-words">{challenge.endDate}</span>
+              <span className="font-medium text-sm text-right break-words">{formatTimestamp(challenge.endTime)}</span>
             </div>
             <div className="flex justify-between items-center gap-4 pt-2 border-t border-border/50">
               <span className="text-sm text-muted-foreground">Duration</span>
-              <span className="font-semibold text-sm text-orange-500">{challenge.duration}</span>
+              <span className="font-semibold text-sm text-orange-500">{formatDuration(challenge.startTime, challenge.endTime)}</span>
             </div>
           </div>
         </Card>
@@ -628,7 +590,7 @@ const ChallengeDetail = () => {
                   variant="ghost"
                   size="sm"
                   className="h-6 px-2"
-                  onClick={() => copyToClipboard(challenge.contract_address, "Contract Address")}
+                  onClick={() => copyToClipboard(CONTRACT_ADDRESS, "Contract Address")}
                 >
                   {copiedAddress === "Contract Address" ? (
                     <CheckCircle2 className="h-3 w-3 text-green-500" />
@@ -637,9 +599,9 @@ const ChallengeDetail = () => {
                   )}
                 </Button>
               </div>
-              <p className="font-mono text-xs break-all text-foreground/80">{challenge.contract_address}</p>
+              <p className="font-mono text-xs break-all text-foreground/80">{CONTRACT_ADDRESS}</p>
               <a
-                href={`https://sepolia.etherscan.io/address/${challenge.contract_address}`}
+                href={`https://sepolia.etherscan.io/address/${CONTRACT_ADDRESS}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 mt-2"
@@ -650,7 +612,7 @@ const ChallengeDetail = () => {
             </div>
 
             {/* Charity Wallet (if applicable) */}
-            {challenge.isCharity && challenge.charityWallet && (
+            {challenge.recipient !== "0x0000000000000000000000000000000000000000" && (
               <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Heart className="h-4 w-4 text-red-500 fill-red-500/20" />
@@ -659,7 +621,7 @@ const ChallengeDetail = () => {
                     variant="ghost"
                     size="sm"
                     className="h-6 px-2 ml-auto"
-                    onClick={() => copyToClipboard(challenge.charityWallet!, "Charity Wallet")}
+                    onClick={() => copyToClipboard(challenge.recipient, "Charity Wallet")}
                   >
                     {copiedAddress === "Charity Wallet" ? (
                       <CheckCircle2 className="h-3 w-3 text-green-500" />
@@ -668,7 +630,7 @@ const ChallengeDetail = () => {
                     )}
                   </Button>
                 </div>
-                <p className="font-mono text-xs break-all text-foreground/80 mb-2">{challenge.charityWallet}</p>
+                <p className="font-mono text-xs break-all text-foreground/80 mb-2">{challenge.recipient}</p>
                 <p className="text-xs text-muted-foreground">
                   Failed stakes will be donated to this address
                 </p>
@@ -689,15 +651,15 @@ const ChallengeDetail = () => {
             </Badge>
           </div>
           <div className="space-y-2">
-            {challenge.participantsList.length === 0 ? (
+            {challenge.participants.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">No participants yet</p>
                 <p className="text-xs text-muted-foreground mt-1">Be the first to join!</p>
               </div>
             ) : (
-              [...challenge.participantsList]
-                .sort((a, b) => b.amountUsd - a.amountUsd)
+              [...challenge.participants]
+                .sort((a, b) => Number(b.amount) - Number(a.amount))
                 .slice(0, 5)
                 .map((participant, index) => (
                   <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background transition-colors">
@@ -707,13 +669,13 @@ const ChallengeDetail = () => {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="font-mono text-sm font-medium truncate">
-                          {participant.walletAddress.substring(0, 6)}...
-                          {participant.walletAddress.substring(participant.walletAddress.length - 4)}
+                          {participant.participantAddress.substring(0, 6)}...
+                          {participant.participantAddress.substring(participant.participantAddress.length - 4)}
                         </p>
                       </div>
                     </div>
                     <div className="text-right shrink-0 ml-3">
-                      <p className="text-sm font-semibold whitespace-nowrap text-primary">{participant.amountUsd.toFixed(4)} USDC</p>
+                      <p className="text-sm font-semibold whitespace-nowrap text-primary">{formatUnits(participant.amount, 6)} USDC</p>
                     </div>
                   </div>
                 ))
@@ -722,7 +684,7 @@ const ChallengeDetail = () => {
         </Card>
 
         {/* Join Dialog */}
-        {!isParticipating && wallet?.isConnected && (
+        {!isParticipating && wallet?.isConnected && !isChallengeCompleted(challenge.endTime) && (
           <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
             <DialogTrigger asChild>
               <Button
@@ -786,7 +748,7 @@ const ChallengeDetail = () => {
         )}
 
         {/* Claim Button */}
-        {isParticipating && participantInfo && participantInfo[0] > 0 && (participantInfo[1] === 1 || !challenge.active) && (
+        {isParticipating && participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 3 && participantInfo[1] > 0 && (participantInfo[2] > 0 || !isChallengeActive(challenge.startTime, challenge.endTime)) && (
           <>
             <Button
               onClick={handleClaimRefund}
@@ -798,7 +760,7 @@ const ChallengeDetail = () => {
                 ? "Confirm in Wallet..."
                 : claimIsConfirming
                   ? "Claiming..."
-                  : participantInfo[1] === 1
+                  : participantInfo[2] > 0
                     ? "Claim Your Refund (Winner) 🎉"
                     : "Claim Refund (Timeout)"}
             </Button>
