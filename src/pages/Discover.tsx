@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
 import { useReadContract } from "wagmi";
 import { CONTRACT_ADDRESS, MOTIFY_ABI } from "@/contract";

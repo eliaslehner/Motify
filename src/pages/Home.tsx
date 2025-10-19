@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { apiService, Challenge, isChallengeUpcoming, isChallengeCompleted, isChallengeActive } from "@/services/api";
 import { toast } from "sonner";
 import { WebLogin } from "@/components/WebLogin";
@@ -183,16 +184,18 @@ const Home = () => {
             <h1 className="text-2xl font-bold mb-1">Home</h1>
             <p className="text-sm text-muted-foreground">Give it your all!</p>
           </div>
-          <Avatar className="h-10 w-10">
-            <AvatarImage
-              src={user?.pfpUrl || "/placeholder.svg"}
-              alt={user?.displayName || "Profile"}
-              className="object-cover"
-            />
-            <AvatarFallback>
-              {user?.displayName?.substring(0, 2).toUpperCase() || "U"}
-            </AvatarFallback>
-          </Avatar>
+          <div className="flex items-center gap-2">
+            <Avatar className="h-10 w-10">
+              <AvatarImage
+                src={user?.pfpUrl || "/placeholder.svg"}
+                alt={user?.displayName || "Profile"}
+                className="object-cover"
+              />
+              <AvatarFallback>
+                {user?.displayName?.substring(0, 2).toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
+          </div>
         </div>
       </header>
 
