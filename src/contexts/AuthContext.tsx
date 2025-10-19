@@ -93,25 +93,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const connectWalletInternal = async (isMiniApp: boolean, context?: any) => {
     try {
       if (isMiniApp) {
-        // Get Base Account wallet from SDK (inside mini app)
-        const ctx = context || (await sdk.context);
+        // Get Base Account wallet from SDK using EIP-1193 provider
+        try {
+          const provider = await sdk.wallet.getEthereumProvider();
+          
+          // Request accounts from the provider
+          const accounts = await provider.request({
+            method: 'eth_accounts',
+          }) as string[];
 
-        // Check if we have wallet address from the client context
-        const clientContext = ctx?.client as any;
-        if (clientContext?.smartWalletAddress) {
-          setWallet({
-            address: clientContext.smartWalletAddress,
-            isConnected: true,
-          });
-        } else if (clientContext?.address) {
-          // Fallback to regular address if available
-          setWallet({
-            address: clientContext.address,
-            isConnected: true,
-          });
-        } else {
-          // No wallet address available yet
-          console.log('No wallet address found in context');
+          if (accounts && accounts.length > 0) {
+            setWallet({
+              address: accounts[0],
+              isConnected: true,
+            });
+            console.log('Connected to Mini App wallet:', accounts[0]);
+          } else {
+            // Try to request account access
+            const requestedAccounts = await provider.request({
+              method: 'eth_requestAccounts',
+            }) as string[];
+            
+            if (requestedAccounts && requestedAccounts.length > 0) {
+              setWallet({
+                address: requestedAccounts[0],
+                isConnected: true,
+              });
+              console.log('Connected to Mini App wallet:', requestedAccounts[0]);
+            } else {
+              console.log('No wallet accounts available');
+              setWallet({
+                address: '',
+                isConnected: false,
+              });
+            }
+          }
+        } catch (providerError) {
+          console.error('Failed to get wallet from provider:', providerError);
           setWallet({
             address: '',
             isConnected: false,
