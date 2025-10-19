@@ -12,7 +12,7 @@ import { getActivityTypeInfo } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from "wagmi";
-import { CONTRACT_ADDRESS, MOTIFY_ABI } from "@/contract";
+import { CONTRACTS, ABIS } from "@/contract";
 import { parseUnits, formatUnits } from "viem";
 import {
   Dialog,
@@ -125,21 +125,49 @@ const ChallengeDetail = () => {
   const [joinAmount, setJoinAmount] = useState("");
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+  const [tokenBalance, setTokenBalance] = useState<bigint>(BigInt(0));
+  const [usdcAllowance, setUsdcAllowance] = useState<bigint>(BigInt(0));
+  const [tokenAllowance, setTokenAllowance] = useState<bigint>(BigInt(0));
+  const [approvalStep, setApprovalStep] = useState<'none' | 'usdc' | 'token' | 'join'>('none');
 
   // Read challenge data from contract
   const { data: challengeData, refetch: refetchChallenge, isLoading: challengeLoading } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: MOTIFY_ABI,
+    address: CONTRACTS.MOTIFY,
+    abi: ABIS.MOTIFY,
     functionName: 'getChallengeById',
     args: id ? [BigInt(id)] : undefined,
   } as any);
 
   // Read participant info from contract
   const { data: participantInfo, refetch: refetchParticipantInfo } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: MOTIFY_ABI,
+    address: CONTRACTS.MOTIFY,
+    abi: ABIS.MOTIFY,
     functionName: 'getParticipantInfo',
     args: id && address ? [BigInt(id), address] : undefined,
+  } as any);
+
+  // Read USDC allowance
+  const { data: usdcAllowanceData, refetch: refetchUsdcAllowance } = useReadContract({
+    address: CONTRACTS.MOCK_USDC,
+    abi: ABIS.MOCK_USDC,
+    functionName: 'allowance',
+    args: address ? [address, CONTRACTS.MOTIFY] : undefined,
+  } as any);
+
+  // Read Motify token balance
+  const { data: tokenBalanceData, refetch: refetchTokenBalance } = useReadContract({
+    address: CONTRACTS.MOTIFY_TOKEN,
+    abi: ABIS.MOTIFY_TOKEN,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+  } as any);
+
+  // Read Motify token allowance
+  const { data: tokenAllowanceData, refetch: refetchTokenAllowance } = useReadContract({
+    address: CONTRACTS.MOTIFY_TOKEN,
+    abi: ABIS.MOTIFY_TOKEN,
+    functionName: 'allowance',
+    args: address ? [address, CONTRACTS.MOTIFY] : undefined,
   } as any);
 
   // Wagmi hooks for joining challenge with USDC
@@ -155,6 +183,36 @@ const ChallengeDetail = () => {
     isSuccess: joinIsConfirmed
   } = useWaitForTransactionReceipt({
     hash: joinHash,
+  });
+
+  // Wagmi hooks for USDC approval
+  const {
+    writeContract: approveUsdcContract,
+    data: approveUsdcHash,
+    isPending: approveUsdcIsPending,
+    error: approveUsdcError
+  } = useWriteContract();
+
+  const {
+    isLoading: approveUsdcIsConfirming,
+    isSuccess: approveUsdcIsConfirmed
+  } = useWaitForTransactionReceipt({
+    hash: approveUsdcHash,
+  });
+
+  // Wagmi hooks for token approval
+  const {
+    writeContract: approveTokenContract,
+    data: approveTokenHash,
+    isPending: approveTokenIsPending,
+    error: approveTokenError
+  } = useWriteContract();
+
+  const {
+    isLoading: approveTokenIsConfirming,
+    isSuccess: approveTokenIsConfirmed
+  } = useWaitForTransactionReceipt({
+    hash: approveTokenHash,
   });
 
   // Wagmi hooks for claiming refund
@@ -182,6 +240,24 @@ const ChallengeDetail = () => {
   }, [challengeData, challengeLoading, id]);
 
   useEffect(() => {
+    if (usdcAllowanceData) {
+      setUsdcAllowance(usdcAllowanceData as bigint);
+    }
+  }, [usdcAllowanceData]);
+
+  useEffect(() => {
+    if (tokenBalanceData) {
+      setTokenBalance(tokenBalanceData as bigint);
+    }
+  }, [tokenBalanceData]);
+
+  useEffect(() => {
+    if (tokenAllowanceData) {
+      setTokenAllowance(tokenAllowanceData as bigint);
+    }
+  }, [tokenAllowanceData]);
+
+  useEffect(() => {
     if (joinError) {
       console.error("Join transaction error:", joinError);
       toast.error("Transaction failed: " + joinError.message);
@@ -196,8 +272,54 @@ const ChallengeDetail = () => {
       refetchParticipantInfo();
       setIsJoining(false);
       setShowJoinDialog(false);
+      setApprovalStep('none');
     }
   }, [joinIsConfirmed, joinHash, refetchChallenge, refetchParticipantInfo]);
+
+  useEffect(() => {
+    if (approveUsdcError) {
+      console.error("USDC approval error:", approveUsdcError);
+      toast.error("USDC approval failed: " + approveUsdcError.message);
+    }
+  }, [approveUsdcError]);
+
+  useEffect(() => {
+    if (approveUsdcIsConfirmed && approveUsdcHash) {
+      toast.success("USDC approved!");
+      refetchUsdcAllowance();
+      // If user has token balance, ask for token approval next
+      if (tokenBalance > BigInt(0)) {
+        setApprovalStep('token');
+        // Approve unlimited token spending
+        handleApproveToken(BigInt(2) ** BigInt(256) - BigInt(1));
+      } else {
+        setApprovalStep('join');
+        // Proceed with joining
+        setTimeout(() => {
+          handleJoinAfterApprovals();
+        }, 1000);
+      }
+    }
+  }, [approveUsdcIsConfirmed, approveUsdcHash, tokenBalance, refetchUsdcAllowance]);
+
+  useEffect(() => {
+    if (approveTokenError) {
+      console.error("Token approval error:", approveTokenError);
+      toast.error("Token approval failed: " + approveTokenError.message);
+    }
+  }, [approveTokenError]);
+
+  useEffect(() => {
+    if (approveTokenIsConfirmed && approveTokenHash) {
+      toast.success("Token approved!");
+      refetchTokenAllowance();
+      setApprovalStep('join');
+      // Proceed with joining
+      setTimeout(() => {
+        handleJoinAfterApprovals();
+      }, 1000);
+    }
+  }, [approveTokenIsConfirmed, approveTokenHash, refetchTokenAllowance]);
 
   useEffect(() => {
     if (claimError) {
@@ -213,6 +335,73 @@ const ChallengeDetail = () => {
     }
   }, [claimIsConfirmed, claimHash, refetchParticipantInfo]);
 
+  const handleApproveUsdc = async (amount: bigint) => {
+    if (!address) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      toast.info("Requesting USDC approval...");
+
+      approveUsdcContract({
+        address: CONTRACTS.MOCK_USDC,
+        abi: ABIS.MOCK_USDC,
+        functionName: "approve",
+        args: [CONTRACTS.MOTIFY, amount],
+      } as any);
+    } catch (error: any) {
+      console.error("Error approving USDC:", error);
+      toast.error(error.message || "Failed to approve USDC");
+    }
+  };
+
+  const handleApproveToken = async (amount: bigint) => {
+    if (!address) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      toast.info("Requesting Token approval...");
+
+      approveTokenContract({
+        address: CONTRACTS.MOTIFY_TOKEN,
+        abi: ABIS.MOTIFY_TOKEN,
+        functionName: "approve",
+        args: [CONTRACTS.MOTIFY, amount],
+      } as any);
+    } catch (error: any) {
+      console.error("Error approving token:", error);
+      toast.error(error.message || "Failed to approve token");
+    }
+  };
+
+  const handleJoinAfterApprovals = async () => {
+    if (!challenge || !id) {
+      return;
+    }
+
+    const usdcAmount = parseUnits(joinAmount, 6);
+
+    try {
+      toast.info("Joining challenge...");
+
+      joinContract({
+        address: CONTRACTS.MOTIFY,
+        abi: ABIS.MOTIFY,
+        functionName: "joinChallengeWithApprove",
+        args: [BigInt(id), usdcAmount],
+      } as any);
+
+    } catch (error: any) {
+      console.error("Error joining challenge:", error);
+      toast.error(error.message || "Failed to join challenge");
+      setIsJoining(false);
+      setApprovalStep('none');
+    }
+  };
+
   const handleJoinChallenge = async () => {
     if (!challenge || !wallet?.isConnected || !id || !address) {
       toast.error("Please connect your wallet first");
@@ -225,32 +414,29 @@ const ChallengeDetail = () => {
       return;
     }
 
-    setIsJoining(true);
+    const usdcAmount = parseUnits(joinAmount, 6);
 
-    try {
-      // Use USDC amount (6 decimals for USDC)
-      const usdcAmount = parseUnits(joinAmount, 6);
-      
-      // For now, we'll use the approve method since permit requires:
-      // 1. Correct USDC contract address
-      // 2. Getting the current nonce from USDC contract
-      // 3. Proper domain separator
-      // This is a complex implementation that requires backend support or additional contract calls
-      
-      toast.info("Please confirm the transaction in your wallet...");
-      
-      joinContract({
-        address: CONTRACT_ADDRESS,
-        abi: MOTIFY_ABI,
-        functionName: "joinChallengeWithApprove",
-        args: [BigInt(id), usdcAmount],
-      } as any);
-
-    } catch (error: any) {
-      console.error("Error joining challenge:", error);
-      toast.error(error.message || "Failed to join challenge");
-      setIsJoining(false);
+    // Check USDC allowance
+    if (usdcAllowance < usdcAmount) {
+      setApprovalStep('usdc');
+      setIsJoining(true);
+      await handleApproveUsdc(usdcAmount);
+      return;
     }
+
+    // Check if user has tokens and token allowance
+    if (tokenBalance > BigInt(0) && tokenAllowance === BigInt(0)) {
+      setApprovalStep('token');
+      setIsJoining(true);
+      // Approve unlimited token spending
+      await handleApproveToken(BigInt(2) ** BigInt(256) - BigInt(1));
+      return;
+    }
+
+    // Proceed with joining
+    setApprovalStep('join');
+    setIsJoining(true);
+    await handleJoinAfterApprovals();
   };
 
   const handleClaimRefund = async () => {
@@ -263,8 +449,8 @@ const ChallengeDetail = () => {
       toast.info("Please confirm the claim transaction in your wallet...");
 
       claimContract({
-        address: CONTRACT_ADDRESS,
-        abi: MOTIFY_ABI,
+        address: CONTRACTS.MOTIFY,
+        abi: ABIS.MOTIFY,
         functionName: "claimRefund",
         args: [BigInt(id)],
       } as any);
@@ -590,7 +776,7 @@ const ChallengeDetail = () => {
                   variant="ghost"
                   size="sm"
                   className="h-6 px-2"
-                  onClick={() => copyToClipboard(CONTRACT_ADDRESS, "Contract Address")}
+                  onClick={() => copyToClipboard(CONTRACTS.MOTIFY, "Contract Address")}
                 >
                   {copiedAddress === "Contract Address" ? (
                     <CheckCircle2 className="h-3 w-3 text-green-500" />
@@ -599,9 +785,9 @@ const ChallengeDetail = () => {
                   )}
                 </Button>
               </div>
-              <p className="font-mono text-xs break-all text-foreground/80">{CONTRACT_ADDRESS}</p>
+              <p className="font-mono text-xs break-all text-foreground/80">{CONTRACTS.MOTIFY}</p>
               <a
-                href={`https://sepolia.etherscan.io/address/${CONTRACT_ADDRESS}`}
+                href={`https://sepolia.etherscan.io/address/${CONTRACTS.MOTIFY}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 mt-2"
@@ -690,13 +876,17 @@ const ChallengeDetail = () => {
               <Button
                 className="w-full bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 shadow-lg"
                 size="lg"
-                disabled={joinIsPending || joinIsConfirming}
+                disabled={joinIsPending || joinIsConfirming || approveUsdcIsPending || approveUsdcIsConfirming || approveTokenIsPending || approveTokenIsConfirming}
               >
-                {joinIsPending
-                  ? "Confirm in Wallet..."
-                  : joinIsConfirming
-                    ? "Joining..."
-                    : "Join Challenge"}
+                {approveUsdcIsPending || approveUsdcIsConfirming
+                  ? "Approving USDC..."
+                  : approveTokenIsPending || approveTokenIsConfirming
+                    ? "Approving Token..."
+                    : joinIsPending
+                      ? "Confirm in Wallet..."
+                      : joinIsConfirming
+                        ? "Joining..."
+                        : "Join Challenge"}
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-gradient-to-br from-card to-card/50">
@@ -707,6 +897,17 @@ const ChallengeDetail = () => {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
+                {/* Token Balance Info */}
+                {tokenBalance > BigInt(0) && (
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <p className="text-xs font-medium text-blue-600 mb-1">💎 Token Balance: {formatUnits(tokenBalance, 18)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Your tokens provide a price reduction: {(Number(tokenBalance) / 10000).toFixed(2)}$ off
+                    </p>
+                  </div>
+                )}
+
+                {/* Amount Input */}
                 <div className="space-y-2">
                   <Label htmlFor="amount">Stake Amount (USDC)</Label>
                   <Input
@@ -718,25 +919,51 @@ const ChallengeDetail = () => {
                     value={joinAmount}
                     onChange={(e) => setJoinAmount(e.target.value)}
                     className="bg-background"
+                    disabled={isJoining || approveUsdcIsPending || approveUsdcIsConfirming || approveTokenIsPending || approveTokenIsConfirming || joinIsPending || joinIsConfirming}
                   />
                   <p className="text-xs text-muted-foreground">
                     Your stake will be locked in the smart contract until the challenge ends.
                   </p>
                 </div>
+
+                {/* Approval Status */}
+                {(approveUsdcIsPending || approveUsdcIsConfirming || approveTokenIsPending || approveTokenIsConfirming) && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                    {approveUsdcIsPending || approveUsdcIsConfirming ? (
+                      <>
+                        <p className="text-xs font-medium text-amber-600">Approving USDC...</p>
+                        <p className="text-xs text-muted-foreground mt-1">Step 1 of {tokenBalance > BigInt(0) ? '3' : '2'}</p>
+                      </>
+                    ) : approveTokenIsPending || approveTokenIsConfirming ? (
+                      <>
+                        <p className="text-xs font-medium text-amber-600">Approving Tokens...</p>
+                        <p className="text-xs text-muted-foreground mt-1">Step 2 of 3</p>
+                      </>
+                    ) : null}
+                  </div>
+                )}
+
+                {/* Join Button */}
                 <Button
                   onClick={handleJoinChallenge}
-                  disabled={isJoining || joinIsPending || joinIsConfirming}
+                  disabled={isJoining || joinIsPending || joinIsConfirming || approveUsdcIsPending || approveUsdcIsConfirming || approveTokenIsPending || approveTokenIsConfirming}
                   className="w-full bg-gradient-to-r from-primary to-primary/80"
                   size="lg"
                 >
-                  {joinIsPending
-                    ? "Confirm in Wallet..."
-                    : joinIsConfirming
-                      ? "Confirming..."
-                      : isJoining
-                        ? "Saving..."
-                        : "Confirm and Join"}
+                  {approveUsdcIsPending || approveUsdcIsConfirming
+                    ? "Approve USDC in Wallet..."
+                    : approveTokenIsPending || approveTokenIsConfirming
+                      ? "Approve Token in Wallet..."
+                      : joinIsPending
+                        ? "Confirm in Wallet..."
+                        : joinIsConfirming
+                          ? "Confirming..."
+                          : isJoining
+                            ? "Processing..."
+                            : "Confirm and Join"}
                 </Button>
+
+                {/* Transaction Hash */}
                 {joinHash && (
                   <p className="text-xs text-center text-muted-foreground font-mono break-all">
                     Tx: {joinHash.slice(0, 10)}...{joinHash.slice(-8)}
