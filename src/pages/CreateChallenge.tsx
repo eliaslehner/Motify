@@ -172,6 +172,7 @@ const CreateChallenge = () => {
           BigInt(startTimeTimestamp),
           BigInt(endTimeTimestamp),
           isPrivate,
+          formData.name,
           apiProvider,
           activityType,
           goalAmount,

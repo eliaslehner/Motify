@@ -30,6 +30,7 @@ interface ContractChallenge {
   startTime: bigint;
   endTime: bigint;
   isPrivate: boolean;
+  name: string;
   apiType: string;
   goalType: string;
   goalAmount: bigint;
@@ -390,7 +391,7 @@ const ChallengeDetail = () => {
       joinContract({
         address: CONTRACTS.MOTIFY,
         abi: ABIS.MOTIFY,
-        functionName: "joinChallengeWithApprove",
+        functionName: "joinChallenge",
         args: [BigInt(id), usdcAmount],
       } as any);
 
@@ -409,8 +410,8 @@ const ChallengeDetail = () => {
     }
 
     const amount = parseFloat(joinAmount);
-    if (isNaN(amount) || amount < 0.00001) {
-      toast.error("Minimum stake amount is 0.00001 USDC");
+    if (isNaN(amount) || amount < 1) {
+      toast.error("Minimum stake amount is 1 USDC");
       return;
     }
 
@@ -675,7 +676,8 @@ const ChallengeDetail = () => {
                     </Badge>
                   )}
                 </div>
-                <h2 className="text-2xl font-bold mb-2 break-words">Challenge #{challenge.challengeId.toString()}</h2>
+                <h2 className="text-2xl font-bold mb-2 break-words">{challenge.name}</h2>
+                <p className="text-xs text-muted-foreground">ID: #{challenge.challengeId.toString()}</p>
               </div>
             </div>
 
@@ -787,12 +789,12 @@ const ChallengeDetail = () => {
               </div>
               <p className="font-mono text-xs break-all text-foreground/80">{CONTRACTS.MOTIFY}</p>
               <a
-                href={`https://sepolia.etherscan.io/address/${CONTRACTS.MOTIFY}`}
+                href={`https://sepolia.basescan.org/address/${CONTRACTS.MOTIFY}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 mt-2"
               >
-                View on Etherscan
+                View on Basescan
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
@@ -893,7 +895,7 @@ const ChallengeDetail = () => {
               <DialogHeader>
                 <DialogTitle>Join Challenge</DialogTitle>
                 <DialogDescription>
-                  Enter the amount you want to stake for this challenge. Minimum 0.00001 USDC.
+                  Enter the amount you want to stake for this challenge (in USDC). Minimum 1 USDC.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -913,9 +915,9 @@ const ChallengeDetail = () => {
                   <Input
                     id="amount"
                     type="number"
-                    placeholder="0.01"
-                    min="0.00001"
-                    step="0.00001"
+                    placeholder="10"
+                    min="1"
+                    step="1"
                     value={joinAmount}
                     onChange={(e) => setJoinAmount(e.target.value)}
                     className="bg-background"

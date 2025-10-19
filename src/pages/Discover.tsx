@@ -25,6 +25,7 @@ interface BlockchainChallenge {
   startTime: bigint;
   endTime: bigint;
   isPrivate: boolean;
+  name: string;
   apiType: string;
   goalType: string;
   goalAmount: bigint;
@@ -73,7 +74,7 @@ const Discover = () => {
 
         return {
           id: Number(bc.challengeId),
-          title: "PLACEHOLDER", // Placeholder as requested
+          title: bc.name,
           description: bc.description,
           serviceType: bc.apiType.toLowerCase(),
           goalType: bc.goalType,

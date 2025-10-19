@@ -3,7 +3,7 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "_motify",
+                "name": "_usdcAddress",
                 "type": "address"
             }
         ],
@@ -14,152 +14,81 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "spender",
+                "name": "token",
                 "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "allowance",
-                "type": "uint256"
-            },
-            {
-                "internalType": "uint256",
-                "name": "needed",
-                "type": "uint256"
             }
         ],
-        "name": "ERC20InsufficientAllowance",
+        "name": "SafeERC20FailedOperation",
         "type": "error"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "sender",
-                "type": "address"
-            },
+        "inputs": [],
+        "name": "BASIS_POINTS_DIVISOR",
+        "outputs": [
             {
                 "internalType": "uint256",
-                "name": "balance",
-                "type": "uint256"
-            },
-            {
-                "internalType": "uint256",
-                "name": "needed",
+                "name": "",
                 "type": "uint256"
             }
         ],
-        "name": "ERC20InsufficientBalance",
-        "type": "error"
+        "stateMutability": "view",
+        "type": "function"
     },
     {
-        "inputs": [
+        "inputs": [],
+        "name": "DECLARATION_TIMEOUT",
+        "outputs": [
             {
-                "internalType": "address",
-                "name": "approver",
-                "type": "address"
-            }
-        ],
-        "name": "ERC20InvalidApprover",
-        "type": "error"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "receiver",
-                "type": "address"
-            }
-        ],
-        "name": "ERC20InvalidReceiver",
-        "type": "error"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "sender",
-                "type": "address"
-            }
-        ],
-        "name": "ERC20InvalidSender",
-        "type": "error"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "spender",
-                "type": "address"
-            }
-        ],
-        "name": "ERC20InvalidSpender",
-        "type": "error"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "owner",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "spender",
-                "type": "address"
-            },
-            {
-                "indexed": false,
                 "internalType": "uint256",
-                "name": "value",
+                "name": "",
                 "type": "uint256"
             }
         ],
-        "name": "Approval",
-        "type": "event"
+        "stateMutability": "view",
+        "type": "function"
     },
     {
-        "anonymous": false,
-        "inputs": [
+        "inputs": [],
+        "name": "FEE_BASIS_POINTS",
+        "outputs": [
             {
-                "indexed": true,
-                "internalType": "address",
-                "name": "from",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "to",
-                "type": "address"
-            },
-            {
-                "indexed": false,
                 "internalType": "uint256",
-                "name": "value",
+                "name": "",
                 "type": "uint256"
             }
         ],
-        "name": "Transfer",
-        "type": "event"
+        "stateMutability": "view",
+        "type": "function"
     },
     {
-        "inputs": [
+        "inputs": [],
+        "name": "MAX_DESCRIPTION_LENGTH",
+        "outputs": [
             {
-                "internalType": "address",
-                "name": "owner",
-                "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "spender",
-                "type": "address"
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
             }
         ],
-        "name": "allowance",
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "MIN_AMOUNT",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "TOKENS_PER_USDC",
         "outputs": [
             {
                 "internalType": "uint256",
@@ -173,36 +102,116 @@
     {
         "inputs": [
             {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "name": "challenges",
+        "outputs": [
+            {
                 "internalType": "address",
-                "name": "spender",
+                "name": "recipient",
                 "type": "address"
             },
             {
                 "internalType": "uint256",
-                "name": "value",
+                "name": "startTime",
                 "type": "uint256"
-            }
-        ],
-        "name": "approve",
-        "outputs": [
+            },
+            {
+                "internalType": "uint256",
+                "name": "endTime",
+                "type": "uint256"
+            },
             {
                 "internalType": "bool",
-                "name": "",
+                "name": "isPrivate",
+                "type": "bool"
+            },
+            {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "apiType",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "goalType",
+                "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "goalAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "string",
+                "name": "description",
+                "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalDonationAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalWinnerInitialStake",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "tokenPot",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "declaredParticipants",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "resultsFinalized",
                 "type": "bool"
             }
         ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_challengeId",
+                "type": "uint256"
+            }
+        ],
+        "name": "claimRefund",
+        "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
     },
     {
         "inputs": [
             {
-                "internalType": "address",
-                "name": "account",
-                "type": "address"
+                "internalType": "uint256",
+                "name": "_challengeId",
+                "type": "uint256"
             }
         ],
-        "name": "balanceOf",
+        "name": "claimTimeoutRefund",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "collectedFees",
         "outputs": [
             {
                 "internalType": "uint256",
@@ -217,85 +226,477 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "from",
+                "name": "_recipient",
                 "type": "address"
             },
             {
                 "internalType": "uint256",
-                "name": "amount",
+                "name": "_startTime",
                 "type": "uint256"
-            }
-        ],
-        "name": "burn",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "decimals",
-        "outputs": [
-            {
-                "internalType": "uint8",
-                "name": "",
-                "type": "uint8"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "to",
-                "type": "address"
             },
             {
                 "internalType": "uint256",
-                "name": "amount",
+                "name": "_endTime",
                 "type": "uint256"
-            }
-        ],
-        "name": "mint",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
+            },
             {
-                "internalType": "uint256",
-                "name": "amount",
-                "type": "uint256"
-            }
-        ],
-        "name": "mintForTesting",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "motify",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "name",
-        "outputs": [
+                "internalType": "bool",
+                "name": "_isPrivate",
+                "type": "bool"
+            },
             {
                 "internalType": "string",
-                "name": "",
+                "name": "_name",
                 "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "_apiType",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "_goalType",
+                "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_goalAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "string",
+                "name": "_description",
+                "type": "string"
+            },
+            {
+                "internalType": "address[]",
+                "name": "_whitelistedParticipants",
+                "type": "address[]"
+            }
+        ],
+        "name": "createChallenge",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_challengeId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "address[]",
+                "name": "_participants",
+                "type": "address[]"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "_refundPercentages",
+                "type": "uint256[]"
+            }
+        ],
+        "name": "declareResults",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_challengeId",
+                "type": "uint256"
+            }
+        ],
+        "name": "finalizeAndProcessDonations",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_limit",
+                "type": "uint256"
+            }
+        ],
+        "name": "getAllChallenges",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "challengeId",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "recipient",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "startTime",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "endTime",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isPrivate",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "name",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "apiType",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "goalType",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "goalAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "description",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "totalDonationAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "resultsFinalized",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "participantCount",
+                        "type": "uint256"
+                    }
+                ],
+                "internalType": "struct Motify.ChallengeInfo[]",
+                "name": "",
+                "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_challengeId",
+                "type": "uint256"
+            }
+        ],
+        "name": "getChallengeById",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "challengeId",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "recipient",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "startTime",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "endTime",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isPrivate",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "name",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "apiType",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "goalType",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "goalAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "description",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "totalDonationAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "resultsFinalized",
+                        "type": "bool"
+                    },
+                    {
+                        "components": [
+                            {
+                                "internalType": "address",
+                                "name": "participantAddress",
+                                "type": "address"
+                            },
+                            {
+                                "internalType": "uint256",
+                                "name": "initialAmount",
+                                "type": "uint256"
+                            },
+                            {
+                                "internalType": "uint256",
+                                "name": "amount",
+                                "type": "uint256"
+                            },
+                            {
+                                "internalType": "uint256",
+                                "name": "refundPercentage",
+                                "type": "uint256"
+                            },
+                            {
+                                "internalType": "bool",
+                                "name": "resultDeclared",
+                                "type": "bool"
+                            }
+                        ],
+                        "internalType": "struct Motify.ParticipantInfo[]",
+                        "name": "participants",
+                        "type": "tuple[]"
+                    }
+                ],
+                "internalType": "struct Motify.ChallengeDetail",
+                "name": "",
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_participant",
+                "type": "address"
+            }
+        ],
+        "name": "getChallengesForParticipant",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "challengeId",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "recipient",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "startTime",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "endTime",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isPrivate",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "name",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "apiType",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "goalType",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "goalAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "description",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "totalDonationAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "resultsFinalized",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "participantCount",
+                        "type": "uint256"
+                    }
+                ],
+                "internalType": "struct Motify.ChallengeInfo[]",
+                "name": "",
+                "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_challengeId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "address",
+                "name": "_participant",
+                "type": "address"
+            }
+        ],
+        "name": "getParticipantInfo",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "participantAddress",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "initialAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "refundPercentage",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "resultDeclared",
+                        "type": "bool"
+                    }
+                ],
+                "internalType": "struct Motify.ParticipantInfo",
+                "name": "",
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_challengeId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_stakeAmount",
+                "type": "uint256"
+            }
+        ],
+        "name": "joinChallenge",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "motifyToken",
+        "outputs": [
+            {
+                "internalType": "contract IMotifyToken",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "nextChallengeId",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
             }
         ],
         "stateMutability": "view",
@@ -315,81 +716,41 @@
         "type": "function"
     },
     {
-        "inputs": [],
-        "name": "symbol",
-        "outputs": [
-            {
-                "internalType": "string",
-                "name": "",
-                "type": "string"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "totalSupply",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
         "inputs": [
             {
                 "internalType": "address",
-                "name": "to",
+                "name": "_tokenAddress",
                 "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "value",
-                "type": "uint256"
             }
         ],
-        "name": "transfer",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "",
-                "type": "bool"
-            }
-        ],
+        "name": "setTokenAddress",
+        "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
     },
     {
+        "inputs": [],
+        "name": "usdc",
+        "outputs": [
+            {
+                "internalType": "contract IERC20",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
         "inputs": [
             {
                 "internalType": "address",
-                "name": "from",
+                "name": "_to",
                 "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "to",
-                "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "value",
-                "type": "uint256"
             }
         ],
-        "name": "transferFrom",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "",
-                "type": "bool"
-            }
-        ],
+        "name": "withdrawFees",
+        "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
     }
