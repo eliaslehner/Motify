@@ -1,3 +1,4 @@
+// providers/OnchainProviders.tsx
 import { ReactNode } from 'react';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

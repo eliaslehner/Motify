@@ -1,4 +1,4 @@
-// src/components/WalletStatus.tsx
+// components/WalletStatus.tsx
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
