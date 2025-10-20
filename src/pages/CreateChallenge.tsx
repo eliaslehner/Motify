@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { TimePicker } from "@/components/ui/time-picker";
-import { ThemeToggle } from "@/components/ThemeToggle";
+
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -293,7 +293,6 @@ const CreateChallenge = () => {
             </Button>
           </Link>
           <h1 className="text-xl font-bold flex-1">Create Challenge</h1>
-          <ThemeToggle />
         </div>
       </header>
 

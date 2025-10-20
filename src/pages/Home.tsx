@@ -5,9 +5,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { apiService, Challenge, isChallengeUpcoming, isChallengeCompleted, isChallengeActive } from "@/services/api";
 import { toast } from "sonner";
 import { WebLogin } from "@/components/WebLogin";
@@ -179,29 +177,17 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-4">
           <div>
             <h1 className="text-2xl font-bold mb-1">Home</h1>
             <p className="text-sm text-muted-foreground">Give it your all!</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Avatar className="h-10 w-10">
-              <AvatarImage
-                src={user?.pfpUrl || "/placeholder.svg"}
-                alt={user?.displayName || "Profile"}
-                className="object-cover"
-              />
-              <AvatarFallback>
-                {user?.displayName?.substring(0, 2).toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6">
         <DebugAuthInfo />
-        
+
         {authLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
@@ -214,8 +200,8 @@ const Home = () => {
             <WalletStatus />
             <Card className="p-8 text-center bg-gradient-card border-border">
               <p className="text-muted-foreground mb-4">
-                {isInMiniApp 
-                  ? 'Connect your wallet to view and manage your challenges.' 
+                {isInMiniApp
+                  ? 'Connect your wallet to view and manage your challenges.'
                   : 'Connect your wallet to get started with Motify.'}
               </p>
               <p className="text-sm text-muted-foreground">

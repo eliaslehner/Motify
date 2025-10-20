@@ -1,7 +1,6 @@
 // pages/NotFound.tsx
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NotFound = () => {
   const location = useLocation();
@@ -12,9 +11,6 @@ const NotFound = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background relative">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
       <div className="text-center">
         <h1 className="mb-4 text-4xl font-bold text-foreground">404</h1>
         <p className="mb-4 text-xl text-muted-foreground">Oops! Page not found</p>
