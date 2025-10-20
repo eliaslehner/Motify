@@ -22,7 +22,7 @@ const App = () => {
   }, []);
 
   return (
-    <ThemeProvider defaultTheme="light" storageKey="motify-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="motify-theme">
       <OnchainProviders>
         <AuthProvider>
           <TooltipProvider>

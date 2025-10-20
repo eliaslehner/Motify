@@ -18,7 +18,7 @@ export function DebugAuthInfo() {
         className="w-full flex items-center justify-between text-left"
       >
         <h3 className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">
-          🐛 Debug: Auth State
+          Debug: Auth State
         </h3>
         {isExpanded ? (
           <ChevronUp className="h-4 w-4 text-yellow-600" />
