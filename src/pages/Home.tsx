@@ -140,7 +140,7 @@ const Home = () => {
         ) : userChallenges.length === 0 ? (
           <div className="space-y-6">
             {/* Empty state with more excitement */}
-            <Card className="p-12 text-center bg-gradient-to-br from-primary/5 via-card to-card/50 border-primary/20 relative overflow-hidden">
+            <Card className="p-8 text-center bg-gradient-to-br from-primary/5 via-card to-card/50 border-primary/20 relative overflow-hidden">
               <div className="absolute inset-0 opacity-5">
                 <div className="absolute inset-0" style={{
                   backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
@@ -153,24 +153,23 @@ const Home = () => {
                   <Trophy className="h-10 w-10 text-white" />
                 </div>
 
-                <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  Ready to Start Your Journey?
-                </h3>
+                <h4 className="text-xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  Get ready!
+                </h4>
 
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  You haven't joined any challenges yet. Discover exciting challenges,
-                  compete with others, and achieve your goals!
+                  Discover exciting challenges, compete with others, and achieve your goals!
                 </p>
 
-                <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-                  <Link to="/discover">
-                    <Button size="lg" className="bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 shadow-lg">
+                <div className="flex flex-col sm:flex-row gap-3 justify-center items-center w-full sm:w-auto">
+                  <Link to="/discover" className="w-full sm:w-auto">
+                    <Button size="lg" className="w-full sm:min-w-[200px] bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 shadow-lg">
                       <Zap className="mr-2 h-5 w-5" />
                       Discover Challenges
                     </Button>
                   </Link>
-                  <Link to="/create">
-                    <Button size="lg" variant="outline">
+                  <Link to="/create" className="w-full sm:w-auto">
+                    <Button size="lg" variant="outline" className="w-full sm:min-w-[200px]">
                       <Plus className="mr-2 h-5 w-5" />
                       Create Your Own
                     </Button>
@@ -257,18 +256,19 @@ const Home = () => {
                 isParticipating={true}
               />
             ))}
+
+            {/* Floating create button - only shown when there are challenges */}
+            <Link to="/create">
+              <Button
+                size="lg"
+                className="fixed bottom-24 right-6 h-14 w-14 shadow-glow bg-gradient-primary hover:opacity-90"
+              >
+                <Plus className="h-6 w-6" />
+              </Button>
+            </Link>
           </div>
         )}
       </main>
-
-      <Link to="/create">
-        <Button
-          size="lg"
-          className="fixed bottom-24 right-6 h-14 w-14 shadow-glow bg-gradient-primary hover:opacity-90"
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      </Link>
     </div>
   );
 };

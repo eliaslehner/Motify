@@ -1,5 +1,5 @@
 // pages/Profile.tsx
-import { Trophy, Target, DollarSign, TrendingUp, Coins } from "lucide-react";
+import { Trophy, Target, DollarSign, TrendingUp, Coins, CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -7,16 +7,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useEffect, useState } from "react";
-import { apiService, UserStats } from "@/services/api";
+import { apiService, UserStats, UserApiIntegrations } from "@/services/api";
 import { useReadContract, useAccount } from "wagmi";
 import { CONTRACTS, ABIS } from "@/contract";
 import { formatUnits } from "viem";
+import { Button } from "@/components/ui/button";
 
 const Profile = () => {
   const { user, wallet, isLoading } = useAuth();
   const { address } = useAccount();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [apiIntegrations, setApiIntegrations] = useState<UserApiIntegrations | null>(null);
+  const [loadingIntegrations, setLoadingIntegrations] = useState(true);
 
   // Read Motify token balance from blockchain
   const { data: tokenBalanceData, isLoading: tokenBalanceLoading } = useReadContract({
@@ -26,10 +29,11 @@ const Profile = () => {
     args: address ? [address] : undefined,
   } as any);
 
-  // Fetch user stats from API
+  // Fetch user stats and API integrations
   useEffect(() => {
     if (wallet?.address || address) {
       loadUserStats();
+      loadApiIntegrations();
     }
   }, [wallet?.address, address]);
 
@@ -45,6 +49,38 @@ const Profile = () => {
       console.error('Failed to load user stats:', error);
     } finally {
       setLoadingStats(false);
+    }
+  };
+
+  const loadApiIntegrations = async () => {
+    const userAddress = address || wallet?.address;
+    if (!userAddress) return;
+
+    try {
+      setLoadingIntegrations(true);
+      const integrations = await apiService.getUserApiIntegrations(userAddress);
+      setApiIntegrations(integrations);
+    } catch (error) {
+      console.error('Failed to load API integrations:', error);
+    } finally {
+      setLoadingIntegrations(false);
+    }
+  };
+
+  const handleGithubConnection = async () => {
+    const userAddress = address || wallet?.address;
+    if (!userAddress) return;
+
+    try {
+      if (apiIntegrations?.github.isConnected) {
+        await apiService.disconnectGithub(userAddress);
+      } else {
+        await apiService.connectGithub(userAddress);
+      }
+      // Reload integrations after connection/disconnection
+      await loadApiIntegrations();
+    } catch (error) {
+      console.error('Failed to toggle GitHub connection:', error);
     }
   };
 
@@ -236,6 +272,65 @@ const Profile = () => {
                   </Card>
                 ))
               )}
+            </div>
+
+
+            {/* APIs Section */}
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-4">APIs</h2>
+              <Card className="p-6 bg-gradient-card border-border">
+                {loadingIntegrations ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-3 w-32 mb-2" />
+                    <Skeleton className="h-16 w-full" />
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Connect your accounts to participate in challenges
+                    </p>
+                    <div className="space-y-3">
+                      {/* GitHub Integration */}
+                      <button
+                        onClick={handleGithubConnection}
+                        className="w-full rounded-lg p-3 transition-all duration-200 border border-[hsl(220_20%_20%)] bg-[hsl(220_20%_18%)] hover:bg-[hsl(220_20%_22%)]"
+                      >
+                        <div className="flex items-center gap-3">
+                          {/* Icon container */}
+                          <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 bg-[hsl(220_20%_25%)]">
+                            <img
+                              src="/github-white.svg"
+                              alt="GitHub"
+                              className="w-full h-full rounded-full"
+                            />
+                          </div>
+                          
+                          {/* Text content */}
+                          <div className="flex-1 text-left">
+                            <span className="font-medium text-[hsl(220_15%_95%)]">
+                              GitHub
+                            </span>
+                          </div>
+                          
+                          {/* Status text */}
+                          <div className="shrink-0">
+                            <span className={`
+                              text-sm font-medium
+                              ${
+                                apiIntegrations?.github.isConnected
+                                  ? "text-[hsl(221_83%_53%)]"
+                                  : "text-[hsl(220_10%_65%)]"
+                              }
+                            `}>
+                              {apiIntegrations?.github.isConnected ? "Connected" : "Connect"}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </Card>
             </div>
           </>
         )}

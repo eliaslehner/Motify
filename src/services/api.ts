@@ -12,6 +12,19 @@ export interface TokenConfig {
   reductionRate: number; // How much USDC is reduced per token (e.g., 0.1 means 1 token = 0.1 USDC reduction)
 }
 
+// API Integration Status
+export interface ApiIntegrationStatus {
+  provider: 'github' | 'strava';
+  isConnected: boolean;
+  username?: string;
+  connectedAt?: string;
+}
+
+export interface UserApiIntegrations {
+  github: ApiIntegrationStatus;
+  strava: ApiIntegrationStatus;
+}
+
 /**
  * Calculates the progress percentage based on daily progress data.
  * @param progressData - The progress data containing daily achievements.
@@ -777,6 +790,52 @@ class MockApiService {
     mockChallengesStorage = [...MOCK_CHALLENGES];
     nextId = Math.max(...MOCK_CHALLENGES.map(c => c.id)) + 1;
     console.log('📦 [MOCK] Challenges reset to initial state');
+  }
+
+  // API Integration methods
+  async getUserApiIntegrations(address: string): Promise<UserApiIntegrations> {
+    await this.delay();
+    console.log(`📦 [MOCK] Fetching API integrations for ${address}...`);
+    
+    // Mock data - for now, GitHub is connected, Strava is not
+    // This will be replaced with actual backend calls later
+    return {
+      github: {
+        provider: 'github',
+        isConnected: true, // Mock: GitHub is connected
+        username: 'mockuser',
+        connectedAt: new Date().toISOString(),
+      },
+      strava: {
+        provider: 'strava',
+        isConnected: false, // Mock: Strava is not connected
+      },
+    };
+  }
+
+  async connectGithub(address: string): Promise<void> {
+    await this.delay(500);
+    console.log(`📦 [MOCK] Connecting GitHub for ${address}...`);
+    // In real implementation, this would redirect to GitHub OAuth
+    // For now, just simulate the connection
+  }
+
+  async disconnectGithub(address: string): Promise<void> {
+    await this.delay(500);
+    console.log(`📦 [MOCK] Disconnecting GitHub for ${address}...`);
+    // In real implementation, this would revoke the OAuth token
+  }
+
+  async connectStrava(address: string): Promise<void> {
+    await this.delay(500);
+    console.log(`📦 [MOCK] Connecting Strava for ${address}...`);
+    // In real implementation, this would redirect to Strava OAuth
+  }
+
+  async disconnectStrava(address: string): Promise<void> {
+    await this.delay(500);
+    console.log(`📦 [MOCK] Disconnecting Strava for ${address}...`);
+    // In real implementation, this would revoke the OAuth token
   }
 }
 

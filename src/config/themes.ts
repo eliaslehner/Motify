@@ -58,6 +58,11 @@ export interface ThemeColors {
   
   // Shadow
   shadowGlow: string;
+  
+  // GitHub colors
+  github: string;
+  githubForeground: string;
+  githubHover: string;
 }
 
 export const lightTheme: ThemeColors = {
@@ -104,6 +109,10 @@ export const lightTheme: ThemeColors = {
   gradientCard: 'linear-gradient(180deg, hsl(0 0% 100%), hsl(220 25% 99%))',
   
   shadowGlow: '0 0 30px hsl(221 83% 53% / 0.3)',
+  
+  github: '210 12% 90%',
+  githubForeground: '210 12% 16%',
+  githubHover: '210 12% 95%',
 };
 
 export const darkTheme: ThemeColors = {
@@ -150,6 +159,10 @@ export const darkTheme: ThemeColors = {
   gradientCard: 'linear-gradient(180deg, hsl(220 20% 12%), hsl(220 20% 14%))',
   
   shadowGlow: '0 0 30px hsl(221 83% 53% / 0.4)',
+  
+  github: '220 20% 18%',
+  githubForeground: '220 15% 95%',
+  githubHover: '220 20% 22%',
 };
 
 // You can easily add more themes here
