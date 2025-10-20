@@ -2,6 +2,14 @@
 // Mock API service for frontend development without backend
 // Currently in use in development mode
 
+import { 
+  initiateGitHubOAuth, 
+  clearGitHubToken, 
+  isGitHubConnected,
+  getGitHubUsername 
+} from '@/lib/github-auth';
+import { verifyToken } from '@/lib/github-api';
+
 // USER WALLET ADDRESS - Replace with your actual wallet address for testing
 export const USER_WALLET_ADDRESS = "0xD919790B73d45527b8a63d0288049C5f235D5b11";
 
@@ -797,33 +805,35 @@ class MockApiService {
     await this.delay();
     console.log(`📦 [MOCK] Fetching API integrations for ${address}...`);
     
-    // Mock data - for now, GitHub is connected, Strava is not
-    // This will be replaced with actual backend calls later
+    // Check actual GitHub connection status from localStorage
+    const githubConnected = isGitHubConnected();
+    const githubUsername = getGitHubUsername();
+    
     return {
       github: {
         provider: 'github',
-        isConnected: true, // Mock: GitHub is connected
-        username: 'mockuser',
-        connectedAt: new Date().toISOString(),
+        isConnected: githubConnected,
+        username: githubUsername || undefined,
+        connectedAt: githubConnected ? new Date().toISOString() : undefined,
       },
       strava: {
         provider: 'strava',
-        isConnected: false, // Mock: Strava is not connected
+        isConnected: false, // Mock: Strava is not connected yet
       },
     };
   }
 
   async connectGithub(address: string): Promise<void> {
-    await this.delay(500);
-    console.log(`📦 [MOCK] Connecting GitHub for ${address}...`);
-    // In real implementation, this would redirect to GitHub OAuth
-    // For now, just simulate the connection
+    console.log(`📦 Connecting GitHub for ${address}...`);
+    // Initiate GitHub OAuth flow (full page redirect)
+    initiateGitHubOAuth();
   }
 
   async disconnectGithub(address: string): Promise<void> {
     await this.delay(500);
-    console.log(`📦 [MOCK] Disconnecting GitHub for ${address}...`);
-    // In real implementation, this would revoke the OAuth token
+    console.log(`📦 Disconnecting GitHub for ${address}...`);
+    // Clear GitHub token from localStorage
+    clearGitHubToken();
   }
 
   async connectStrava(address: string): Promise<void> {
@@ -840,3 +850,45 @@ class MockApiService {
 }
 
 export const apiService = new MockApiService();
+
+/**
+ * GitHub Service Layer
+ * Provides easy-to-use methods for GitHub integration
+ * Easy to migrate to backend calls when ready
+ */
+export const githubService = {
+  /**
+   * Initiate GitHub OAuth connection flow
+   */
+  connect: () => {
+    initiateGitHubOAuth();
+  },
+
+  /**
+   * Disconnect GitHub account
+   */
+  disconnect: () => {
+    clearGitHubToken();
+  },
+
+  /**
+   * Check if GitHub is connected
+   */
+  isConnected: () => {
+    return isGitHubConnected();
+  },
+
+  /**
+   * Get connected GitHub username
+   */
+  getUsername: () => {
+    return getGitHubUsername();
+  },
+
+  /**
+   * Verify current token and get user info
+   */
+  verify: async () => {
+    return await verifyToken();
+  },
+};

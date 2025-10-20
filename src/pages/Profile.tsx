@@ -12,6 +12,7 @@ import { useReadContract, useAccount } from "wagmi";
 import { CONTRACTS, ABIS } from "@/contract";
 import { formatUnits } from "viem";
 import { Button } from "@/components/ui/button";
+import GitHubConnectButton from "@/components/GitHubConnectButton";
 
 const Profile = () => {
   const { user, wallet, isLoading } = useAuth();
@@ -64,23 +65,6 @@ const Profile = () => {
       console.error('Failed to load API integrations:', error);
     } finally {
       setLoadingIntegrations(false);
-    }
-  };
-
-  const handleGithubConnection = async () => {
-    const userAddress = address || wallet?.address;
-    if (!userAddress) return;
-
-    try {
-      if (apiIntegrations?.github.isConnected) {
-        await apiService.disconnectGithub(userAddress);
-      } else {
-        await apiService.connectGithub(userAddress);
-      }
-      // Reload integrations after connection/disconnection
-      await loadApiIntegrations();
-    } catch (error) {
-      console.error('Failed to toggle GitHub connection:', error);
     }
   };
 
@@ -291,42 +275,7 @@ const Profile = () => {
                     </p>
                     <div className="space-y-3">
                       {/* GitHub Integration */}
-                      <button
-                        onClick={handleGithubConnection}
-                        className="w-full rounded-lg p-3 transition-all duration-200 border border-[hsl(220_20%_20%)] bg-[hsl(220_20%_18%)] hover:bg-[hsl(220_20%_22%)]"
-                      >
-                        <div className="flex items-center gap-3">
-                          {/* Icon container */}
-                          <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 bg-[hsl(220_20%_25%)]">
-                            <img
-                              src="/github-white.svg"
-                              alt="GitHub"
-                              className="w-full h-full rounded-full"
-                            />
-                          </div>
-                          
-                          {/* Text content */}
-                          <div className="flex-1 text-left">
-                            <span className="font-medium text-[hsl(220_15%_95%)]">
-                              GitHub
-                            </span>
-                          </div>
-                          
-                          {/* Status text */}
-                          <div className="shrink-0">
-                            <span className={`
-                              text-sm font-medium
-                              ${
-                                apiIntegrations?.github.isConnected
-                                  ? "text-[hsl(221_83%_53%)]"
-                                  : "text-[hsl(220_10%_65%)]"
-                              }
-                            `}>
-                              {apiIntegrations?.github.isConnected ? "Connected" : "Connect"}
-                            </span>
-                          </div>
-                        </div>
-                      </button>
+                      <GitHubConnectButton onConnectionChange={loadApiIntegrations} />
                     </div>
                   </>
                 )}

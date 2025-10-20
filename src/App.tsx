@@ -14,6 +14,7 @@ import Discover from "./pages/Discover";
 import Profile from "./pages/Profile";
 import CreateChallenge from "./pages/CreateChallenge";
 import ChallengeDetail from "./pages/ChallengeDetail";
+import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -35,6 +36,7 @@ const App = () => {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/create" element={<CreateChallenge />} />
                 <Route path="/challenge/:id" element={<ChallengeDetail />} />
+                <Route path="/auth/github/callback" element={<AuthCallback />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <BottomNavigationBar />
