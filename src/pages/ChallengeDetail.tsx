@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ChallengeStatusBadge } from "@/components/ChallengeStatusBadge";
+import { getServiceInfo, isGithubService } from "@/utils/serviceInfo";
+import { isChallengeActive, isChallengeCompleted, isChallengeUpcoming, formatTimestamp, formatDuration } from "@/utils/challengeHelpers";
 import { useState, useEffect } from "react";
 import { getActivityTypeInfo } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,69 +56,6 @@ interface ContractParticipantInfo {
   amount: bigint;
   refundPercentage: bigint;
   resultDeclared: boolean;
-}
-
-// Helper functions for challenge status
-function isChallengeActive(startTime: bigint, endTime: bigint): boolean {
-  const now = BigInt(Math.floor(Date.now() / 1000));
-  return now >= startTime && now <= endTime;
-}
-
-function isChallengeCompleted(endTime: bigint): boolean {
-  const now = BigInt(Math.floor(Date.now() / 1000));
-  return now > endTime;
-}
-
-function isChallengeUpcoming(startTime: bigint): boolean {
-  const now = BigInt(Math.floor(Date.now() / 1000));
-  return now < startTime;
-}
-
-function formatTimestamp(timestamp: bigint): string {
-  const date = new Date(Number(timestamp) * 1000);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
-function formatDuration(startTime: bigint, endTime: bigint): string {
-  const now = BigInt(Math.floor(Date.now() / 1000));
-
-  if (now < startTime) {
-    const secondsUntilStart = Number(startTime - now);
-    const daysUntilStart = Math.ceil(secondsUntilStart / (24 * 60 * 60));
-    const hoursUntilStart = Math.ceil(secondsUntilStart / (60 * 60));
-
-    if (daysUntilStart > 1) {
-      return `Starts in ${daysUntilStart} day${daysUntilStart !== 1 ? 's' : ''}`;
-    } else if (hoursUntilStart > 1) {
-      return `Starts in ${hoursUntilStart} hour${hoursUntilStart !== 1 ? 's' : ''}`;
-    } else {
-      const minutesUntilStart = Math.ceil(secondsUntilStart / 60);
-      return `Starts in ${minutesUntilStart} minute${minutesUntilStart !== 1 ? 's' : ''}`;
-    }
-  }
-
-  if (now > endTime) {
-    return 'Completed';
-  }
-
-  const secondsLeft = Number(endTime - now);
-  const daysLeft = Math.ceil(secondsLeft / (24 * 60 * 60));
-  const hoursLeft = Math.ceil(secondsLeft / (60 * 60));
-
-  if (daysLeft > 1) {
-    return `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`;
-  } else if (hoursLeft > 1) {
-    return `${hoursLeft} hour${hoursLeft !== 1 ? 's' : ''} left`;
-  } else {
-    const minutesLeft = Math.ceil(secondsLeft / 60);
-    return `${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''} left`;
-  }
 }
 
 // Helper function to calculate token discount
@@ -586,46 +526,39 @@ const ChallengeDetail = () => {
   const getStatusBadge = () => {
     if (!challenge) return null;
 
-    if (isChallengeUpcoming(challenge.startTime)) {
-      return (
-        <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border border-orange-500/20 font-medium">
-          Upcoming
-        </Badge>
-      );
+    const startDate = new Date(Number(challenge.startTime) * 1000);
+    const endDate = new Date(Number(challenge.endTime) * 1000);
+
+    // Check if user was successful based on participant info
+    let isSuccessful = false;
+    if (participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 4 && participantInfo[3] > 0) {
+      isSuccessful = true;
     }
+
     if (isChallengeCompleted(challenge.endTime)) {
-      // Check if user was successful based on participant info
-      if (participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 4 && participantInfo[3] > 0) { // refundPercentage > 0 means success
+      if (isSuccessful) {
         return (
           <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium">
             Completed - Success
           </Badge>
         );
-      } else if (participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 3 && participantInfo[2] > 0) { // has stake but no refund
+      } else if (participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 3 && participantInfo[2] > 0) {
         return (
           <Badge variant="secondary" className="bg-red-500/10 text-red-600 border border-red-500/20 font-medium">
             Completed - Failed
           </Badge>
         );
-      } else {
-        return (
-          <Badge variant="secondary" className="bg-gray-500/10 text-gray-600 border border-gray-500/20 font-medium">
-            Ended
-          </Badge>
-        );
       }
     }
-    if (isChallengeActive(challenge.startTime, challenge.endTime)) {
-      return (
-        <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium">
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-            Active
-          </div>
-        </Badge>
-      );
-    }
-    return null;
+
+    return (
+      <ChallengeStatusBadge
+        startDate={startDate}
+        endDate={endDate}
+        isCompleted={isChallengeCompleted(challenge.endTime)}
+        isSuccessful={isSuccessful}
+      />
+    );
   };
 
   if (loading || challengeLoading) {
@@ -666,15 +599,8 @@ const ChallengeDetail = () => {
   const totalStake = challenge.participants.reduce((sum, p) => sum + p.amount, BigInt(0));
 
   // Determine service info from apiType
-  const serviceInfo = {
-    name: challenge.apiType.toUpperCase(),
-    logo: challenge.apiType.toLowerCase() === 'strava' ? '/strava_logo.svg' :
-      challenge.apiType.toLowerCase() === 'github' ? '/github-white.svg' : null,
-    color: challenge.apiType.toLowerCase() === 'strava' ? 'bg-orange-500' :
-      challenge.apiType.toLowerCase() === 'github' ? 'bg-black' : 'bg-primary'
-  };
-
-  const isGithub = serviceInfo.name === 'GITHUB';
+  const serviceInfo = getServiceInfo(challenge.apiType);
+  const isGithub = isGithubService(challenge.apiType);
   const activityInfo = getActivityTypeInfo(challenge.goalType as any); // Cast since we don't have strict typing
 
   return (
