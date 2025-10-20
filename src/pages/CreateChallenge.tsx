@@ -15,7 +15,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { CONTRACT_ADDRESS, MOTIFY_ABI } from "@/contract";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -54,8 +54,19 @@ const CreateChallenge = () => {
   });
 
   const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+  const { isLoading: isConfirming, isSuccess: isConfirmed, data: receipt } = useWaitForTransactionReceipt({
     hash,
+  });
+
+  // Read the nextChallengeId to determine the ID of the challenge we just created
+  const { data: nextChallengeId } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: MOTIFY_ABI,
+    functionName: 'nextChallengeId',
+    // Only query after transaction is confirmed
+    query: {
+      enabled: isConfirmed && !!receipt,
+    }
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -74,12 +85,18 @@ const CreateChallenge = () => {
   }, [error]);
 
   useEffect(() => {
-    if (isConfirmed && hash) {
+    if (isConfirmed && receipt && nextChallengeId !== undefined) {
+      // The challenge we just created has ID = nextChallengeId - 1
+      // Since nextChallengeId is the ID that will be used for the NEXT challenge
+      const createdChallengeId = Number(nextChallengeId) - 1;
+
       toast.success("Challenge created successfully!");
       setIsSubmitting(false);
-      navigate("/");
+
+      // Navigate to the newly created challenge
+      navigate(`/challenge/${createdChallengeId}`);
     }
-  }, [isConfirmed, hash, navigate]);
+  }, [isConfirmed, receipt, nextChallengeId, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
