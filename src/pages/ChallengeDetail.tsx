@@ -1,12 +1,14 @@
 // pages/ChallengeDetail.tsx
 import { ArrowLeft, Calendar, DollarSign, Users, Trophy, Target, Loader2, TrendingUp, Heart, Wallet, Copy, CheckCircle2, ExternalLink, Share2, Check } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
+import { useComposeCast } from '@coinbase/onchainkit/minikit';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useState, useEffect } from "react";
 import { getActivityTypeInfo } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -172,6 +174,7 @@ const ChallengeDetail = () => {
   const [tokenAllowance, setTokenAllowance] = useState<bigint>(BigInt(0));
   const [approvalStep, setApprovalStep] = useState<'none' | 'usdc' | 'token' | 'join'>('none');
   const [tokensToBurn, setTokensToBurn] = useState<bigint>(BigInt(0));
+  const { composeCast } = useComposeCast();
 
   // Read challenge data from contract
   const { data: challengeData, refetch: refetchChallenge, isLoading: challengeLoading } = useReadContract({
@@ -571,27 +574,14 @@ const ChallengeDetail = () => {
   };
 
   const handleShare = async () => {
-    const shareText = `Join my challenge: ${challenge?.description}!\n\nGoal: ${challenge?.goalAmount.toString()} ${challenge?.goalType}\nParticipants: ${challenge?.participants.length}`;
+    if (!challenge) return;
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Challenge ${id}`,
-          text: shareText,
-          url: window.location.href,
-        });
-      } catch (err) {
-        console.log("Share cancelled or failed");
-      }
-    } else {
-      // Fallback: copy to clipboard
-      try {
-        await navigator.clipboard.writeText(shareText);
-        toast.success("Challenge details copied to clipboard!");
-      } catch (err) {
-        toast.error("Failed to share");
-      }
-    }
+    const shareText = `Join my ${challenge.name} challenge! 🎯\n\nGoal: ${challenge.goalAmount.toString()} ${challenge.goalType}\nParticipants: ${challenge.participants.length}\nTotal Pool: ${formatUnits(totalStake, 6)} USDC`;
+
+    composeCast({
+      text: shareText,
+      embeds: [window.location.href]
+    });
   };
 
   const getStatusBadge = () => {
@@ -700,6 +690,7 @@ const ChallengeDetail = () => {
             <h1 className="text-xl font-bold">Challenge Details</h1>
           </div>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Button
               variant="ghost"
               size="icon"

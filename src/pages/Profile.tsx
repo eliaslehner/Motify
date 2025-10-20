@@ -4,14 +4,23 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useEffect, useState } from "react";
 import { apiService, UserStats, TokenConfig } from "@/services/api";
 
 const Profile = () => {
   const { user, wallet, isLoading } = useAuth();
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [userStats, setUserStats] = useState<UserStats | null>({
+    totalChallengesSucceeded: 0,
+    totalChallengesParticipated: 0,
+    totalAmountContributedUsd: 0,
+  });
   const [loadingData, setLoadingData] = useState(true);
-  const [platformTokens, setPlatformTokens] = useState<TokenConfig | null>(null);
+  const [platformTokens, setPlatformTokens] = useState<TokenConfig | null>({
+    balance: 0,
+    name: 'MOTIFY',
+    reductionRate: 0,
+  });
 
   useEffect(() => {
     if (wallet?.address) {
@@ -68,36 +77,7 @@ const Profile = () => {
       color: "text-accent",
       bgColor: "bg-accent/10",
     },
-  ] : [
-    {
-      icon: Trophy,
-      label: "Succeeded",
-      value: "0",
-      color: "text-success",
-      bgColor: "bg-success-light",
-    },
-    {
-      icon: Target,
-      label: "Participated",
-      value: "0",
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-    },
-    {
-      icon: DollarSign,
-      label: "Total Contributed",
-      value: "0 USDC",
-      color: "text-warning",
-      bgColor: "bg-warning-light",
-    },
-    {
-      icon: TrendingUp,
-      label: "Success Rate",
-      value: "0%",
-      color: "text-accent",
-      bgColor: "bg-accent/10",
-    },
-  ];
+  ] : [];
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -105,6 +85,7 @@ const Profile = () => {
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Profile</h1>
+          <ThemeToggle />
         </div>
       </header>
 
@@ -157,7 +138,7 @@ const Profile = () => {
                 <div className="flex-1">
                   <p className="text-sm font-medium text-purple-600 mb-1">Platform Tokens</p>
                   <h3 className="text-2xl font-bold">
-                    {platformTokens ? platformTokens.balance.toFixed(1) : '0.0'}
+                    {platformTokens?.balance.toFixed(1) || '0.0'}
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     {platformTokens?.name || 'MOTIFY'}
@@ -166,11 +147,11 @@ const Profile = () => {
               </div>
               <p className="text-xs text-muted-foreground mt-3">
                 Use tokens to reduce USDC fees on new challenges
-                {platformTokens && platformTokens.reductionRate > 0 && (
-                  <span className="block mt-1">
-                    1 token = {platformTokens.reductionRate.toFixed(2)} USDC reduction
-                  </span>
-                )}
+                <span className="block mt-1">
+                  {platformTokens && platformTokens.reductionRate > 0
+                    ? `1 token = ${platformTokens.reductionRate.toFixed(2)} USDC reduction`
+                    : '\u00A0'}
+                </span>
               </p>
             </Card>
 

@@ -7,9 +7,12 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { apiService, Challenge, isChallengeUpcoming, isChallengeCompleted, isChallengeActive } from "@/services/api";
 import { toast } from "sonner";
 import { WebLogin } from "@/components/WebLogin";
+import { WalletStatus } from "@/components/WalletStatus";
+import { DebugAuthInfo } from "@/components/DebugAuthInfo";
 
 const Home = () => {
   const { user, wallet, isLoading: authLoading, isInMiniApp, isAuthenticated } = useAuth();
@@ -181,32 +184,52 @@ const Home = () => {
             <h1 className="text-2xl font-bold mb-1">Home</h1>
             <p className="text-sm text-muted-foreground">Give it your all!</p>
           </div>
-          <Avatar className="h-10 w-10">
-            <AvatarImage
-              src={user?.pfpUrl || "/placeholder.svg"}
-              alt={user?.displayName || "Profile"}
-              className="object-cover"
-            />
-            <AvatarFallback>
-              {user?.displayName?.substring(0, 2).toUpperCase() || "U"}
-            </AvatarFallback>
-          </Avatar>
+          <div className="flex items-center gap-2">
+            <Avatar className="h-10 w-10">
+              <AvatarImage
+                src={user?.pfpUrl || "/placeholder.svg"}
+                alt={user?.displayName || "Profile"}
+                className="object-cover"
+              />
+              <AvatarFallback>
+                {user?.displayName?.substring(0, 2).toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
+          </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        {loadingChallenges ? (
+        <DebugAuthInfo />
+        
+        {authLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Connecting to your account...</p>
+            </div>
+          </div>
+        ) : !wallet?.isConnected ? (
+          <div className="space-y-4">
+            <WalletStatus />
+            <Card className="p-8 text-center bg-gradient-card border-border">
+              <p className="text-muted-foreground mb-4">
+                {isInMiniApp 
+                  ? 'Connect your wallet to view and manage your challenges.' 
+                  : 'Connect your wallet to get started with Motify.'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Or explore challenges in the Discover tab.
+              </p>
+            </Card>
+          </div>
+        ) : loadingChallenges ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
               <p className="text-muted-foreground">Loading your challenges...</p>
             </div>
           </div>
-        ) : !wallet?.isConnected ? (
-          <Card className="p-8 text-center bg-gradient-card border-border">
-            <p className="text-muted-foreground mb-4">Connect your wallet to see your challenges.</p>
-            <p className="text-sm text-muted-foreground mb-4">Or explore challenges in the Discover tab.</p>
-          </Card>
         ) : userChallenges.length === 0 ? (
           <Card className="p-8 text-center bg-gradient-card border-border">
             <p className="text-muted-foreground mb-4">You haven't joined any challenges yet.</p>

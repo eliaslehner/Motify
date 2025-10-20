@@ -1,3 +1,4 @@
+// src/hooks/useWallet.ts
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { useAuth } from '@/contexts/AuthContext';
 
