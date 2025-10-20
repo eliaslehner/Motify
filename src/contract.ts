@@ -1,13 +1,13 @@
 // Contract ABIs
-import motifyABI from "../contract_abi/motify.json";
-import mockUSDCABI from "../contract_abi/mockUSDC.json";
-import motifyTokenABI from "../contract_abi/motifyToken.json";
+import motifyABI from "../contract_abi/Motify.json";
+import mockUSDCABI from "../contract_abi/MockUSDC.json";
+import motifyTokenABI from "../contract_abi/MotifyToken.json";
 
 // Contract Addresses
 export const CONTRACTS = {
-    MOTIFY: "0xF46073A8FF2f1F03ecf9234a07599f74d797D8E2" as const,
-    MOCK_USDC: "0xb608011bCea21a4F40f7CB4Ffc666711AA65d8BF" as const,
-    MOTIFY_TOKEN: "0x50f8eFD44e2d473521074bc37C0B6732f105716A" as const,
+    MOTIFY: "0x53Da03A36Aa9333C41C5521A113d0f8BA028bC43" as const,
+    MOCK_USDC: "0x83d37b00C8cEe7EfD6DE86817D317b82617Faad6" as const,
+    MOTIFY_TOKEN: "0xc19112393585Af1250352AF7B4EDdc23d8a55c3a" as const,
 } as const;
 
 // ABIs

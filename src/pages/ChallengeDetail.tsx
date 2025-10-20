@@ -39,6 +39,7 @@ interface ContractChallenge {
   resultsFinalized: boolean;
   participants: Array<{
     participantAddress: string;
+    initialAmount: bigint;
     amount: bigint;
     refundPercentage: bigint;
     resultDeclared: boolean;
@@ -47,6 +48,7 @@ interface ContractChallenge {
 
 interface ContractParticipantInfo {
   participantAddress: string;
+  initialAmount: bigint;
   amount: bigint;
   refundPercentage: bigint;
   resultDeclared: boolean;
@@ -604,13 +606,13 @@ const ChallengeDetail = () => {
     }
     if (isChallengeCompleted(challenge.endTime)) {
       // Check if user was successful based on participant info
-      if (participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 3 && participantInfo[2] > 0) { // refundPercentage > 0 means success
+      if (participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 4 && participantInfo[3] > 0) { // refundPercentage > 0 means success
         return (
           <Badge variant="secondary" className="bg-green-500/10 text-green-600 border border-green-500/20 font-medium">
             Completed - Success
           </Badge>
         );
-      } else if (participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 2 && participantInfo[1] > 0) { // has stake but no refund
+      } else if (participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 3 && participantInfo[2] > 0) { // has stake but no refund
         return (
           <Badge variant="secondary" className="bg-red-500/10 text-red-600 border border-red-500/20 font-medium">
             Completed - Failed
@@ -726,12 +728,13 @@ const ChallengeDetail = () => {
               </div>
             </div>
 
-            {participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 4 && (
+            {participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 5 && (
               <div className="mt-3 pt-3 border-t border-green-500/20 text-xs text-muted-foreground space-y-1">
-                <p className="font-mono">On-chain: {formatUnits(participantInfo[1], 6)} USDC</p>
-                <p>Refund %: <span className="font-semibold">{participantInfo[2].toString()}%</span></p>
+                <p className="font-mono">Initial: {formatUnits(participantInfo[1], 6)} USDC</p>
+                <p className="font-mono">Current: {formatUnits(participantInfo[2], 6)} USDC</p>
+                <p>Refund %: <span className="font-semibold">{participantInfo[3].toString()}%</span></p>
                 <p>Status: <span className="font-semibold">{
-                  participantInfo[3] ? "Result Declared" : "Pending"
+                  participantInfo[4] ? "Result Declared" : "Pending"
                 }</span></p>
               </div>
             )}
@@ -1175,7 +1178,7 @@ const ChallengeDetail = () => {
         )}
 
         {/* Claim Button */}
-        {isParticipating && participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 3 && participantInfo[1] > 0 && (participantInfo[2] > 0 || !isChallengeActive(challenge.startTime, challenge.endTime)) && (
+        {isParticipating && participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 4 && participantInfo[2] > 0 && (participantInfo[3] > 0 || !isChallengeActive(challenge.startTime, challenge.endTime)) && (
           <>
             <Button
               onClick={handleClaimRefund}
@@ -1187,7 +1190,7 @@ const ChallengeDetail = () => {
                 ? "Confirm in Wallet..."
                 : claimIsConfirming
                   ? "Claiming..."
-                  : participantInfo[2] > 0
+                  : participantInfo[3] > 0
                     ? "Claim Your Refund (Winner) 🎉"
                     : "Claim Refund (Timeout)"}
             </Button>
