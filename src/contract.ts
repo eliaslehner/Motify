@@ -1,7 +1,7 @@
 // Contract ABIs
-import motifyABI from "../contract_abi/Motify.json";
-import mockUSDCABI from "../contract_abi/MockUSDC.json";
-import motifyTokenABI from "../contract_abi/MotifyToken.json";
+import motifyArtifact from "../contract_abi/Motify.json";
+import mockUSDCArtifact from "../contract_abi/MockUSDC.json";
+import motifyTokenArtifact from "../contract_abi/MotifyToken.json";
 
 // Contract Addresses
 export const CONTRACTS = {
@@ -10,11 +10,11 @@ export const CONTRACTS = {
     MOTIFY_TOKEN: "0xc19112393585Af1250352AF7B4EDdc23d8a55c3a" as const,
 } as const;
 
-// ABIs
+// ABIs - Extract the ABI array from the Hardhat artifact format
 export const ABIS = {
-    MOTIFY: motifyABI,
-    MOCK_USDC: mockUSDCABI,
-    MOTIFY_TOKEN: motifyTokenABI,
+    MOTIFY: motifyArtifact.abi,
+    MOCK_USDC: mockUSDCArtifact.abi,
+    MOTIFY_TOKEN: motifyTokenArtifact.abi,
 } as const;
 
 // Legacy exports for backward compatibility
@@ -22,6 +22,6 @@ export const CONTRACT_ADDRESS = CONTRACTS.MOTIFY;
 export const MOTIFY_ABI = ABIS.MOTIFY;
 
 // Types
-export type MotifyABI = typeof motifyABI;
-export type MockUSDCABI = typeof mockUSDCABI;
-export type MotifyTokenABI = typeof motifyTokenABI;
+export type MotifyABI = typeof motifyArtifact.abi;
+export type MockUSDCABI = typeof mockUSDCArtifact.abi;
+export type MotifyTokenABI = typeof motifyTokenArtifact.abi;
