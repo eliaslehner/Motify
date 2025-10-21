@@ -3,12 +3,9 @@
 // Currently in use in development mode
 
 import { 
-  initiateGitHubOAuth, 
-  clearGitHubToken, 
-  isGitHubConnected,
-  getGitHubUsername 
-} from '@/lib/github-auth';
-import { verifyToken } from '@/lib/github-api';
+  checkGitHubCredentials,
+  type GitHubConnectionStatus,
+} from '@/lib/github-oauth';
 
 // USER WALLET ADDRESS - Replace with your actual wallet address for testing
 export const USER_WALLET_ADDRESS = "0xD919790B73d45527b8a63d0288049C5f235D5b11";
@@ -814,16 +811,15 @@ class MockApiService {
     await this.delay();
     console.log(`📦 [MOCK] Fetching API integrations for ${address}...`);
     
-    // Check actual GitHub connection status from localStorage
-    const githubConnected = isGitHubConnected();
-    const githubUsername = getGitHubUsername();
+    // Check actual GitHub connection status from backend
+    const githubStatus = await checkGitHubCredentials(address);
     
     return {
       github: {
         provider: 'github',
-        isConnected: githubConnected,
-        username: githubUsername || undefined,
-        connectedAt: githubConnected ? new Date().toISOString() : undefined,
+        isConnected: githubStatus.has_credentials,
+        username: githubStatus.username,
+        connectedAt: githubStatus.connected_at,
       },
       strava: {
         provider: 'strava',
@@ -834,15 +830,17 @@ class MockApiService {
 
   async connectGithub(address: string): Promise<void> {
     console.log(`📦 Connecting GitHub for ${address}...`);
-    // Initiate GitHub OAuth flow (full page redirect)
-    initiateGitHubOAuth();
+    // Note: Connection is now handled by GitHubConnectButton component
+    // This method is kept for backwards compatibility
+    throw new Error('Use GitHubConnectButton component to connect GitHub');
   }
 
   async disconnectGithub(address: string): Promise<void> {
     await this.delay(500);
     console.log(`📦 Disconnecting GitHub for ${address}...`);
-    // Clear GitHub token from localStorage
-    clearGitHubToken();
+    // Note: Disconnection is now handled by GitHubConnectButton component
+    // This method is kept for backwards compatibility
+    throw new Error('Use GitHubConnectButton component to disconnect GitHub');
   }
 
   async connectStrava(address: string): Promise<void> {
@@ -881,42 +879,33 @@ export async function fetchUserStatsFromBackend(walletAddress: string): Promise<
 
 /**
  * GitHub Service Layer
- * Provides easy-to-use methods for GitHub integration
- * Easy to migrate to backend calls when ready
+ * Secure backend-based GitHub integration
+ * All OAuth operations now require wallet signatures and go through the backend
+ * 
+ * Note: Use the GitHubConnectButton component for connect/disconnect operations
+ * as they require wallet signature verification
  */
 export const githubService = {
   /**
-   * Initiate GitHub OAuth connection flow
+   * Check if a wallet address has GitHub connected
+   */
+  checkCredentials: async (walletAddress: string) => {
+    return await checkGitHubCredentials(walletAddress);
+  },
+
+  /**
+   * Note: Use GitHubConnectButton component for connection
+   * Direct connection requires wallet signature verification
    */
   connect: () => {
-    initiateGitHubOAuth();
+    throw new Error('Use GitHubConnectButton component to connect GitHub');
   },
 
   /**
-   * Disconnect GitHub account
+   * Note: Use GitHubConnectButton component for disconnection
+   * Direct disconnection requires wallet signature verification
    */
   disconnect: () => {
-    clearGitHubToken();
-  },
-
-  /**
-   * Check if GitHub is connected
-   */
-  isConnected: () => {
-    return isGitHubConnected();
-  },
-
-  /**
-   * Get connected GitHub username
-   */
-  getUsername: () => {
-    return getGitHubUsername();
-  },
-
-  /**
-   * Verify current token and get user info
-   */
-  verify: async () => {
-    return await verifyToken();
+    throw new Error('Use GitHubConnectButton component to disconnect GitHub');
   },
 };
