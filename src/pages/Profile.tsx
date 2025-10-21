@@ -225,7 +225,7 @@ const Profile = () => {
                     Use tokens to reduce USDC fees on new challenges
                     <span className="block mt-1">
                       {tokenReductionRate > 0
-                        ? `1 token = ${tokenReductionRate.toFixed(4)} USDC reduction`
+                        ? `10000 tokens = 1 USDC`
                         : '\u00A0'}
                     </span>
                   </p>
