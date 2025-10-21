@@ -867,7 +867,7 @@ export const apiService = new MockApiService();
  */
 export async function fetchUserStatsFromBackend(walletAddress: string): Promise<ApiUserStats> {
   // TESTING: Uncomment the line below to test with a hardcoded wallet address
-  walletAddress = "0xD919790B73d45527b8a63d0288049C5f235D5b11";
+  // walletAddress = "0xD919790B73d45527b8a63d0288049C5f235D5b11";
   
   const baseUrl = import.meta.env.STATS_API_URL || 'https://motify-backend-3k55.onrender.com';
   const url = `${baseUrl}/stats/user?wallet=${walletAddress}`;
