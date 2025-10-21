@@ -5,9 +5,9 @@ import motifyTokenArtifact from "../contract_abi/MotifyToken.json";
 
 // Contract Addresses
 export const CONTRACTS = {
-    MOTIFY: "0x53Da03A36Aa9333C41C5521A113d0f8BA028bC43" as const,
+    MOTIFY: "0x64F154cb8F7a0BF91B8e922406Be27a45671C09A" as const,
     MOCK_USDC: "0x83d37b00C8cEe7EfD6DE86817D317b82617Faad6" as const,
-    MOTIFY_TOKEN: "0xc19112393585Af1250352AF7B4EDdc23d8a55c3a" as const,
+    MOTIFY_TOKEN: "0x7dc145CA6533bB5d170F4894a8c05F907AC6160c" as const,
 } as const;
 
 // ABIs - Extract the ABI array from the Hardhat artifact format
