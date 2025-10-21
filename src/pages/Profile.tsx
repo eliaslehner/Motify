@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useEffect, useState } from "react";
-import { apiService, UserStats, UserApiIntegrations } from "@/services/api";
+import { apiService, UserApiIntegrations, ApiUserStats, fetchUserStatsFromBackend } from "@/services/api";
 import { useReadContract, useAccount } from "wagmi";
 import { CONTRACTS, ABIS } from "@/contract";
 import { formatUnits } from "viem";
@@ -17,7 +17,7 @@ import GitHubConnectButton from "@/components/GitHubConnectButton";
 const Profile = () => {
   const { user, wallet, isLoading } = useAuth();
   const { address } = useAccount();
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [userStats, setUserStats] = useState<ApiUserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [apiIntegrations, setApiIntegrations] = useState<UserApiIntegrations | null>(null);
   const [loadingIntegrations, setLoadingIntegrations] = useState(true);
@@ -44,10 +44,11 @@ const Profile = () => {
 
     try {
       setLoadingStats(true);
-      const statsData = await apiService.getUserStats(userAddress);
+      const statsData = await fetchUserStatsFromBackend(userAddress);
       setUserStats(statsData);
     } catch (error) {
       console.error('Failed to load user stats:', error);
+      setUserStats(null);
     } finally {
       setLoadingStats(false);
     }
@@ -74,38 +75,37 @@ const Profile = () => {
   // Token reduction rate: 10,000 tokens = 1 USDC
   const tokenReductionRate = 0.0001; // 1 token = 0.0001 USDC
 
-  const stats = userStats ? [
+  // Always show stats with default values if data is not loaded
+  const stats = [
     {
       icon: Trophy,
       label: "Succeeded",
-      value: userStats.totalChallengesSucceeded.toString(),
+      value: userStats ? userStats.challenges_completed.toString() : "0",
       color: "text-success",
       bgColor: "bg-success-light",
     },
     {
       icon: Target,
-      label: "Participated",
-      value: userStats.totalChallengesParticipated.toString(),
+      label: "Total Wagered",
+      value: userStats ? `${userStats.total_wagered.toFixed(2)} USDC` : "0.00 USDC",
       color: "text-primary",
       bgColor: "bg-primary/10",
     },
     {
       icon: DollarSign,
-      label: "Total Contributed",
-      value: `${userStats.totalAmountContributedUsd.toFixed(4)} USDC`,
+      label: "Total Donated",
+      value: userStats ? `${userStats.total_donations.toFixed(2)} USDC` : "0.00 USDC",
       color: "text-warning",
       bgColor: "bg-warning-light",
     },
     {
       icon: TrendingUp,
       label: "Success Rate",
-      value: userStats.totalChallengesParticipated > 0
-        ? `${Math.round((userStats.totalChallengesSucceeded / userStats.totalChallengesParticipated) * 100)}%`
-        : "0%",
+      value: userStats ? `${userStats.success_percentage_overall.toFixed(1)}%` : "0.0%",
       color: "text-accent",
       bgColor: "bg-accent/10",
     },
-  ] : [];
+  ];
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -236,26 +236,17 @@ const Profile = () => {
             {/* Stats Dashboard */}
             <h2 className="text-xl font-semibold mb-4">Your Stats</h2>
             <div className="grid grid-cols-2 gap-4 mb-6">
-              {loadingStats ? (
-                // Skeleton loaders for stats
-                Array.from({ length: 4 }).map((_, index) => (
-                  <Card key={index} className="p-4 bg-gradient-card border-border">
-                    <Skeleton className="w-10 h-10 rounded-lg mb-3" />
-                    <Skeleton className="h-3 w-20 mb-2" />
-                    <Skeleton className="h-8 w-16" />
-                  </Card>
-                ))
-              ) : (
-                stats.map((stat, index) => (
-                  <Card key={index} className="p-4 bg-gradient-card border-border">
-                    <div className={`${stat.bgColor} ${stat.color} w-10 h-10 rounded-lg flex items-center justify-center mb-3`}>
-                      <stat.icon className="h-5 w-5" />
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                  </Card>
-                ))
-              )}
+              {stats.map((stat, index) => (
+                <Card key={index} className="p-4 bg-gradient-card border-border">
+                  <div className={`${stat.bgColor} ${stat.color} w-10 h-10 rounded-lg flex items-center justify-center mb-3`}>
+                    <stat.icon className="h-5 w-5" />
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
+                  <p className={`text-2xl font-bold ${loadingStats ? 'opacity-50 animate-pulse' : ''}`}>
+                    {stat.value}
+                  </p>
+                </Card>
+              ))}
             </div>
 
 

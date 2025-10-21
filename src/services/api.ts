@@ -151,6 +151,15 @@ export interface UserStats {
   totalAmountContributedUsd: number;
 }
 
+// API Response type from backend stats endpoint
+export interface ApiUserStats {
+  wallet: string;
+  challenges_completed: number;
+  success_percentage_overall: number;
+  total_wagered: number;
+  total_donations: number;
+}
+
 export interface DisplayUserStats extends UserStats {
   completed: number;
   active: number;
@@ -850,6 +859,25 @@ class MockApiService {
 }
 
 export const apiService = new MockApiService();
+
+/**
+ * Fetch user statistics from the backend API
+ * @param walletAddress - User's EVM wallet address (case-insensitive)
+ * @returns User statistics including completed challenges, success rate, wagered amount, and donations
+ */
+export async function fetchUserStatsFromBackend(walletAddress: string): Promise<ApiUserStats> {
+  const baseUrl = import.meta.env.STATS_API_URL || 'https://motify-backend-3k55.onrender.com';
+  const url = `${baseUrl}/stats/user?wallet=${walletAddress}`;
+  
+  const response = await fetch(url);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch user stats: ${response.status} ${response.statusText}`);
+  }
+  
+  const data: ApiUserStats = await response.json();
+  return data;
+}
 
 /**
  * GitHub Service Layer
