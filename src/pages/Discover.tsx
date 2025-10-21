@@ -67,6 +67,10 @@ const Discover = () => {
     abi: MOTIFY_ABI,
     functionName: 'getAllChallenges',
     args: [BigInt(100)], // Get up to 100 challenges
+    query: {
+      refetchInterval: 10000, // Refetch every 10 seconds
+      refetchOnWindowFocus: true, // Refetch when user returns to tab
+    }
   });
 
   // Read user's participating challenges
@@ -77,6 +81,8 @@ const Discover = () => {
     args: wallet?.address ? [wallet.address as `0x${string}`] : undefined,
     query: {
       enabled: !!wallet?.address,
+      refetchInterval: 10000, // Refetch every 10 seconds
+      refetchOnWindowFocus: true, // Refetch when user returns to tab
     }
   });
 

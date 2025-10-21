@@ -57,6 +57,8 @@ const Home = () => {
     args: wallet?.address ? [wallet.address as `0x${string}`] : undefined,
     query: {
       enabled: !!wallet?.address,
+      refetchInterval: 10000, // Refetch every 10 seconds
+      refetchOnWindowFocus: true, // Refetch when user returns to tab
     }
   });
 

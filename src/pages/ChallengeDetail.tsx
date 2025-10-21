@@ -121,6 +121,10 @@ const ChallengeDetail = () => {
     abi: ABIS.MOTIFY,
     functionName: 'getChallengeById',
     args: id ? [BigInt(id)] : undefined,
+    query: {
+      refetchInterval: 10000, // Refetch every 10 seconds
+      refetchOnWindowFocus: true, // Refetch when user returns to tab
+    }
   } as any);
 
   // Read participant info from contract
@@ -129,6 +133,10 @@ const ChallengeDetail = () => {
     abi: ABIS.MOTIFY,
     functionName: 'getParticipantInfo',
     args: id && address ? [BigInt(id), address] : undefined,
+    query: {
+      refetchInterval: 10000, // Refetch every 10 seconds
+      refetchOnWindowFocus: true, // Refetch when user returns to tab
+    }
   } as any);
 
   // Read USDC allowance
@@ -269,13 +277,18 @@ const ChallengeDetail = () => {
   useEffect(() => {
     if (joinIsConfirmed && joinHash) {
       toast.success("Successfully joined challenge!");
+      // Refetch all relevant data
       refetchChallenge();
       refetchParticipantInfo();
+      refetchTokenBalance();
+      refetchUsdcAllowance();
+      // Reset UI state
       setIsJoining(false);
       setShowJoinDialog(false);
       setApprovalStep('none');
+      setJoinAmount("");
     }
-  }, [joinIsConfirmed, joinHash, refetchChallenge, refetchParticipantInfo]);
+  }, [joinIsConfirmed, joinHash, refetchChallenge, refetchParticipantInfo, refetchTokenBalance, refetchUsdcAllowance]);
 
   useEffect(() => {
     if (joinReceiptError) {
@@ -368,9 +381,13 @@ const ChallengeDetail = () => {
   useEffect(() => {
     if (claimIsConfirmed && claimHash) {
       toast.success("Successfully claimed your refund!");
+      // Refetch all relevant data
+      refetchChallenge();
       refetchParticipantInfo();
+      refetchTokenBalance();
+      refetchUsdcAllowance();
     }
-  }, [claimIsConfirmed, claimHash, refetchParticipantInfo]);
+  }, [claimIsConfirmed, claimHash, refetchChallenge, refetchParticipantInfo, refetchTokenBalance, refetchUsdcAllowance]);
 
   const handleApproveUsdc = async () => {
     if (!address) {
@@ -531,7 +548,7 @@ const ChallengeDetail = () => {
 
     // Check if user was successful based on participant info
     let isSuccessful = false;
-    if (participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 4 && participantInfo[3] > 0) {
+    if (participantInfo && (participantInfo as any).refundPercentage > 0) {
       isSuccessful = true;
     }
 
@@ -542,7 +559,7 @@ const ChallengeDetail = () => {
             Completed - Success
           </Badge>
         );
-      } else if (participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 3 && participantInfo[2] > 0) {
+      } else if (participantInfo && (participantInfo as any).amount > 0) {
         return (
           <Badge variant="secondary" className="bg-red-500/10 text-red-600 border border-red-500/20 font-medium">
             Completed - Failed
@@ -643,13 +660,13 @@ const ChallengeDetail = () => {
               </div>
             </div>
 
-            {participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 5 && (
+            {participantInfo && (participantInfo as any).initialAmount !== undefined && (
               <div className="mt-3 pt-3 border-t border-green-500/20 text-xs text-muted-foreground space-y-1">
-                <p className="font-mono">Initial: {formatUnits(participantInfo[1], 6)} USDC</p>
-                <p className="font-mono">Current: {formatUnits(participantInfo[2], 6)} USDC</p>
-                <p>Refund %: <span className="font-semibold">{participantInfo[3].toString()}%</span></p>
+                <p className="font-mono">Initial: {formatUnits((participantInfo as any).initialAmount, 6)} USDC</p>
+                <p className="font-mono">Current: {formatUnits((participantInfo as any).amount, 6)} USDC</p>
+                <p>Refund %: <span className="font-semibold">{((participantInfo as any).refundPercentage / BigInt(100)).toString()}%</span></p>
                 <p>Status: <span className="font-semibold">{
-                  participantInfo[4] ? "Result Declared" : "Pending"
+                  (participantInfo as any).resultDeclared ? "Result Declared" : "Pending"
                 }</span></p>
               </div>
             )}
@@ -1092,8 +1109,28 @@ const ChallengeDetail = () => {
           </Dialog>
         )}
 
+        {/* Waiting for Results Card */}
+        {isParticipating &&
+          isChallengeCompleted(challenge.endTime) &&
+          participantInfo &&
+          !(participantInfo as any).resultDeclared && (
+            <Card className="p-4 bg-blue-500/10 border-blue-500/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
+                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-blue-600 mb-1">Awaiting Results</p>
+                  <p className="text-xs text-muted-foreground">
+                    Challenge has ended. Results are being processed and will be declared soon.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
+
         {/* Claim Button */}
-        {isParticipating && participantInfo && Array.isArray(participantInfo) && participantInfo.length >= 4 && participantInfo[2] > 0 && (participantInfo[3] > 0 || !isChallengeActive(challenge.startTime, challenge.endTime)) && (
+        {isParticipating && participantInfo && (participantInfo as any).amount > 0 && ((participantInfo as any).refundPercentage > 0 || isChallengeCompleted(challenge.endTime)) && (
           <>
             <Button
               onClick={handleClaimRefund}
@@ -1105,7 +1142,7 @@ const ChallengeDetail = () => {
                 ? "Confirm in Wallet..."
                 : claimIsConfirming
                   ? "Claiming..."
-                  : participantInfo[3] > 0
+                  : (participantInfo as any).refundPercentage > 0
                     ? "Claim Your Refund (Winner) 🎉"
                     : "Claim Refund (Timeout)"}
             </Button>

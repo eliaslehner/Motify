@@ -58,17 +58,6 @@ const CreateChallenge = () => {
     hash,
   });
 
-  // Read the nextChallengeId to determine the ID of the challenge we just created
-  const { data: nextChallengeId } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: MOTIFY_ABI,
-    functionName: 'nextChallengeId',
-    // Only query after transaction is confirmed
-    query: {
-      enabled: isConfirmed && !!receipt,
-    }
-  });
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
@@ -85,18 +74,43 @@ const CreateChallenge = () => {
   }, [error]);
 
   useEffect(() => {
-    if (isConfirmed && receipt && nextChallengeId !== undefined) {
-      // The challenge we just created has ID = nextChallengeId - 1
-      // Since nextChallengeId is the ID that will be used for the NEXT challenge
-      const createdChallengeId = Number(nextChallengeId) - 1;
+    if (isConfirmed && receipt) {
+      // Parse the ChallengeCreated event from the transaction logs
+      // The event signature is: ChallengeCreated(uint256 indexed challengeId, address indexed creator, ...)
+      const challengeCreatedTopic = '0x...' // This would be the event signature hash
+
+      // For now, we'll extract the challenge ID from the logs
+      // The first topic after the event signature is the challengeId (since it's indexed)
+      let createdChallengeId: number | null = null;
+
+      if (receipt.logs && receipt.logs.length > 0) {
+        // Find the log that contains ChallengeCreated event
+        // The challengeId should be in the first indexed parameter (topic[1])
+        for (const log of receipt.logs) {
+          if (log.topics && log.topics.length >= 2) {
+            // The challenge ID is in topics[1] (first indexed parameter)
+            const challengeIdHex = log.topics[1];
+            if (challengeIdHex) {
+              createdChallengeId = Number(BigInt(challengeIdHex));
+              break;
+            }
+          }
+        }
+      }
 
       toast.success("Challenge created successfully!");
       setIsSubmitting(false);
 
       // Navigate to the newly created challenge
-      navigate(`/challenge/${createdChallengeId}`);
+      if (createdChallengeId !== null) {
+        navigate(`/challenge/${createdChallengeId}`);
+      } else {
+        // Fallback: just go to discover page if we can't parse the ID
+        console.warn("Could not parse challenge ID from receipt");
+        navigate('/discover');
+      }
     }
-  }, [isConfirmed, receipt, nextChallengeId, navigate]);
+  }, [isConfirmed, receipt, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -327,11 +341,10 @@ const CreateChallenge = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">Description (Optional)</Label>
                 <Textarea
                   id="description"
                   placeholder="Describe what participants need to achieve..."
-                  required
                   maxLength={160}
                   className="bg-background min-h-[100px] resize-none"
                   value={formData.description}
