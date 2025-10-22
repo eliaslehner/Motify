@@ -42,7 +42,8 @@ const Profile = () => {
   }, [wallet?.address, address]);
 
   const loadUserStats = async () => {
-    const userAddress = address || wallet?.address;
+    // Prefer AuthContext wallet (source of truth across Mini App and web), then fallback to wagmi address
+    const userAddress = wallet?.address || address;
     if (!userAddress) return;
 
     try {
@@ -58,7 +59,8 @@ const Profile = () => {
   };
 
   const loadApiIntegrations = async () => {
-    const userAddress = address || wallet?.address;
+    // Prefer AuthContext wallet, then fallback to wagmi address
+    const userAddress = wallet?.address || address;
     if (!userAddress) return;
 
     try {
