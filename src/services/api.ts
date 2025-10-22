@@ -61,9 +61,9 @@ export function getProgressStatus(progressData: ChallengeProgress | null, isComp
   }
 }
 
-// Activity type definitions
-export type GithubActivityType = 'COMMITS' | 'PULL_REQUESTS' | 'ISSUES_FIXED';
-export type FarcasterActivityType = 'CASTS';
+// Activity type definitions (legacy values kept for compatibility)
+export type GithubActivityType = 'COMMITS' | 'PULL_REQUESTS' | 'ISSUES_FIXED' | 'CONTRIBUTION_PER_DAY';
+export type FarcasterActivityType = 'CASTS' | 'CAST_PER_DAY';
 export type WakatimeActivityType = 'CODING_TIME';
 export type ActivityType = GithubActivityType | FarcasterActivityType | WakatimeActivityType;
 
@@ -171,18 +171,24 @@ export interface ChallengeProgress {
 }
 
 // Helper function to get activity type display info
-export function getActivityTypeInfo(activityType?: ActivityType) {
+export function getActivityTypeInfo(activityType?: string) {
   if (!activityType) return null;
 
-  const activityMap: Record<ActivityType, { label: string; icon: string; unit: string; color: string }> = {
+  // Normalize to match mapping keys
+  const normalized = activityType.replace(/-/g, '_').toUpperCase();
+
+  const activityMap: Record<string, { label: string; icon: string; unit: string; color: string }> = {
     'COMMITS': { label: 'Commits', icon: '💻', unit: 'Commits', color: 'text-purple-600' },
     'PULL_REQUESTS': { label: 'Pull Requests', icon: '🔀', unit: 'PRs', color: 'text-indigo-600' },
     'ISSUES_FIXED': { label: 'Issues Fixed', icon: '🐛', unit: 'Issues', color: 'text-pink-600' },
     'CASTS': { label: 'Casts', icon: '📢', unit: 'Casts', color: 'text-purple-500' },
     'CODING_TIME': { label: 'Coding Time', icon: '⏱️', unit: 'Hours', color: 'text-gray-700' },
+    // New provider-specific daily goal types
+    'CONTRIBUTION_PER_DAY': { label: 'Contributions per day', icon: '📈', unit: 'Contributions', color: 'text-purple-600' },
+    'CAST_PER_DAY': { label: 'Casts per day', icon: '📢', unit: 'Casts', color: 'text-purple-500' },
   };
 
-  return activityMap[activityType];
+  return activityMap[normalized] || null;
 }
 
 // Helper functions
