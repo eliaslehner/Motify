@@ -289,14 +289,14 @@ const CreateChallenge = () => {
   // Get available activity types based on selected API provider
   const getActivityTypes = () => {
     if (apiProvider === "github") {
+      // Only allow GitHub public contributions per day
       return [
-        { value: "commits", label: "Commits", icon: "💻" },
-        { value: "pull-requests", label: "Pull Requests", icon: "🔀" },
-        { value: "issues", label: "Issues Fixed", icon: "🐛" },
+        { value: "contribution_per_day", label: "Contributions per day", icon: "�" },
       ];
     } else if (apiProvider === "farcaster") {
+      // Only allow Farcaster casts per day
       return [
-        { value: "casts", label: "Casts", icon: "📢" },
+        { value: "cast_per_day", label: "Casts per day", icon: "📢" },
       ];
     } else if (apiProvider === "wakatime") {
       return [
@@ -309,6 +309,9 @@ const CreateChallenge = () => {
   // Map frontend activity type values to backend/contract expected values
   const mapActivityTypeToContract = (type: string): string => {
     const mapping: Record<string, string> = {
+      // New provider-specific goal types
+      'contribution_per_day': 'contribution_per_day',
+      'cast_per_day': 'cast_per_day',
       'commits': 'COMMITS',
       'pull-requests': 'PULL_REQUESTS',
       'issues': 'ISSUES_FIXED',
@@ -323,11 +326,12 @@ const CreateChallenge = () => {
     if (apiProvider === 'wakatime' && activityType === 'coding-time') {
       return 'hours';
     } else if (apiProvider === 'github') {
+      if (activityType === 'contribution_per_day') return 'contributions';
       if (activityType === 'commits') return 'commits';
       if (activityType === 'pull-requests') return 'PRs';
       if (activityType === 'issues') return 'issues';
-    } else if (apiProvider === 'farcaster' && activityType === 'casts') {
-      return 'casts';
+    } else if (apiProvider === 'farcaster') {
+      if (activityType === 'cast_per_day' || activityType === 'casts') return 'casts';
     }
     return '';
   };
@@ -765,7 +769,7 @@ const CreateChallenge = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Daily Goal</span>
-                    <span className="font-medium">{formData.goal} {activityType === 'steps' ? 'steps' : activityType === 'commits' ? 'commits' : 'units'}</span>
+                    <span className="font-medium">{formData.goal} {getGoalUnit() || 'units'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Duration</span>
