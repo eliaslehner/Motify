@@ -76,7 +76,10 @@ export function getProgressStatus(progressData: ChallengeProgress | null, isComp
 // Activity type definitions
 export type StravaActivityType = 'RUN' | 'WALK' | 'RIDE';
 export type GithubActivityType = 'COMMITS' | 'PULL_REQUESTS' | 'ISSUES_FIXED';
-export type ActivityType = StravaActivityType | GithubActivityType;
+export type FarcasterActivityType = 'CASTS' | 'LIKES' | 'RECASTS';
+export type GoogleFitActivityType = 'STEPS' | 'DISTANCE' | 'CALORIES';
+export type WakatimeActivityType = 'CODING_TIME' | 'PROJECTS' | 'LANGUAGES';
+export type ActivityType = StravaActivityType | GithubActivityType | FarcasterActivityType | GoogleFitActivityType | WakatimeActivityType;
 
 // Backend Challenge interface (as received from Flask)
 export interface BackendChallenge {
@@ -93,7 +96,7 @@ export interface BackendChallenge {
   }>;
   completed: boolean;
   // Service type for display purposes
-  service_type?: 'strava' | 'github' | 'custom';
+  service_type?: 'strava' | 'github' | 'farcaster' | 'googlefit' | 'wakatime' | 'custom';
   // Charity indicator
   is_charity?: boolean;
   // Activity type (what kind of activity is being tracked)
@@ -102,7 +105,7 @@ export interface BackendChallenge {
   charity_wallet?: string;
   // API provider (Added to track which API is used for the challenge - strava or github)
   // This helps organize and filter challenges by API provider in the UI
-  api_provider?: 'strava' | 'github';
+  api_provider?: 'strava' | 'github' | 'farcaster' | 'googlefit' | 'wakatime';
 }
 
 // Frontend Challenge interface (for UI)
@@ -127,7 +130,7 @@ export interface Challenge {
     amountUsd: number;
   }>;
   // Service type for display purposes
-  serviceType: 'strava' | 'github' | 'custom';
+  serviceType: 'strava' | 'github' | 'farcaster' | 'googlefit' | 'wakatime' | 'custom';
   // Charity indicator
   isCharity?: boolean;
   // Activity type
@@ -135,7 +138,7 @@ export interface Challenge {
   // Charity wallet address
   charityWallet?: string;
   // API provider (Added to match backend model - helps track which API service is integrated)
-  apiProvider?: 'strava' | 'github';
+  apiProvider?: 'strava' | 'github' | 'farcaster' | 'googlefit' | 'wakatime';
   isUserParticipating: boolean; // NEW: Check if current user is participating
   userStakeAmount: number;      // NEW: Current user's stake amount
   canJoin: boolean;             // NEW: Whether user can join this challenge
@@ -192,6 +195,15 @@ export function getActivityTypeInfo(activityType?: ActivityType) {
     'COMMITS': { label: 'Commits', icon: '💻', unit: 'Commits', color: 'text-purple-600' },
     'PULL_REQUESTS': { label: 'Pull Requests', icon: '🔀', unit: 'PRs', color: 'text-indigo-600' },
     'ISSUES_FIXED': { label: 'Issues Fixed', icon: '🐛', unit: 'Issues', color: 'text-pink-600' },
+    'CASTS': { label: 'Casts', icon: '📢', unit: 'Casts', color: 'text-purple-500' },
+    'LIKES': { label: 'Likes', icon: '❤️', unit: 'Likes', color: 'text-red-500' },
+    'RECASTS': { label: 'Recasts', icon: '🔁', unit: 'Recasts', color: 'text-blue-500' },
+    'STEPS': { label: 'Steps', icon: '🚶', unit: 'Steps', color: 'text-blue-600' },
+    'DISTANCE': { label: 'Distance', icon: '📏', unit: 'KM', color: 'text-green-600' },
+    'CALORIES': { label: 'Calories', icon: '🔥', unit: 'Calories', color: 'text-orange-600' },
+    'CODING_TIME': { label: 'Coding Time', icon: '⏱️', unit: 'Hours', color: 'text-gray-700' },
+    'PROJECTS': { label: 'Projects', icon: '📁', unit: 'Projects', color: 'text-yellow-600' },
+    'LANGUAGES': { label: 'Languages', icon: '💬', unit: 'Languages', color: 'text-indigo-600' },
   };
 
   return activityMap[activityType];
@@ -267,7 +279,7 @@ export function isChallengeUpcoming(startDate: string): boolean {
 }
 
 // Helper function to detect service type from challenge data
-function detectServiceType(challenge: BackendChallenge): 'strava' | 'github' | 'custom' {
+function detectServiceType(challenge: BackendChallenge): 'strava' | 'github' | 'farcaster' | 'googlefit' | 'wakatime' | 'custom' {
   if (challenge.service_type) {
     return challenge.service_type;
   }
@@ -284,6 +296,21 @@ function detectServiceType(challenge: BackendChallenge): 'strava' | 'github' | '
   if (titleLower.includes('github') || titleLower.includes('commit') || 
       descLower.includes('github') || descLower.includes('repository')) {
     return 'github';
+  }
+  
+  if (titleLower.includes('farcaster') || titleLower.includes('cast') || 
+      descLower.includes('farcaster')) {
+    return 'farcaster';
+  }
+  
+  if (titleLower.includes('google') || titleLower.includes('fit') || 
+      titleLower.includes('googlefit') || descLower.includes('google fit')) {
+    return 'googlefit';
+  }
+  
+  if (titleLower.includes('wakatime') || titleLower.includes('coding') || 
+      descLower.includes('wakatime')) {
+    return 'wakatime';
   }
   
   return 'custom';

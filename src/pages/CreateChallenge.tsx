@@ -270,6 +270,24 @@ const CreateChallenge = () => {
         { value: "pull-requests", label: "Pull Requests", icon: "🔀" },
         { value: "issues", label: "Issues Fixed", icon: "🐛" },
       ];
+    } else if (apiProvider === "farcaster") {
+      return [
+        { value: "casts", label: "Casts", icon: "📢" },
+        { value: "likes", label: "Likes", icon: "❤️" },
+        { value: "recasts", label: "Recasts", icon: "🔁" },
+      ];
+    } else if (apiProvider === "googlefit") {
+      return [
+        { value: "steps", label: "Steps", icon: "🚶" },
+        { value: "distance", label: "Distance", icon: "📏" },
+        { value: "calories", label: "Calories Burned", icon: "🔥" },
+      ];
+    } else if (apiProvider === "wakatime") {
+      return [
+        { value: "coding-time", label: "Coding Time (hours)", icon: "⏱️" },
+        { value: "projects", label: "Projects Worked On", icon: "📁" },
+        { value: "languages", label: "Languages Used", icon: "💬" },
+      ];
     }
     return [];
   };
@@ -405,6 +423,30 @@ const CreateChallenge = () => {
                           G
                         </div>
                         <span>GitHub</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="farcaster">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center overflow-hidden">
+                          <img src="/farcaster-icon.svg" alt="Farcaster" className="w-3 h-3" />
+                        </div>
+                        <span>Farcaster</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="googlefit">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center overflow-hidden">
+                          <img src="/google-icon.png" alt="Google Fit" className="w-3 h-3" />
+                        </div>
+                        <span>Google Fit</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="wakatime">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-gray-800 flex items-center justify-center overflow-hidden">
+                          <img src="/wakatime-icon.svg" alt="Wakatime" className="w-full h-full object-cover" />
+                        </div>
+                        <span>Wakatime</span>
                       </div>
                     </SelectItem>
                   </SelectContent>

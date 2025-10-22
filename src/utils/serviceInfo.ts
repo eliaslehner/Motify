@@ -25,6 +25,26 @@ export function getServiceInfo(serviceType: string): ServiceInfo {
                 logo: '/github-white.svg',
                 color: 'bg-black'
             };
+        case 'farcaster':
+            return {
+                name: 'FARCASTER',
+                logo: '/farcaster-icon.svg',
+                color: 'bg-purple-600'
+            };
+        case 'googlefit':
+        case 'google-fit':
+        case 'google_fit':
+            return {
+                name: 'GOOGLE FIT',
+                logo: '/google-icon.png',
+                color: 'bg-blue-500'
+            };
+        case 'wakatime':
+            return {
+                name: 'WAKATIME',
+                logo: '/wakatime-icon.svg',
+                color: 'bg-gray-800'
+            };
         default:
             return {
                 name: serviceType.toUpperCase(),

@@ -13,6 +13,9 @@ import { CONTRACTS, ABIS } from "@/contract";
 import { formatUnits } from "viem";
 import { Button } from "@/components/ui/button";
 import GitHubConnectButton from "@/components/GitHubConnectButton";
+import FarcasterConnectButton from "@/components/FarcasterConnectButton";
+import GoogleFitConnectButton from "@/components/GoogleFitConnectButton";
+import WakatimeConnectButton from "@/components/WakatimeConnectButton";
 
 const Profile = () => {
   const { user, wallet, isLoading } = useAuth();
@@ -267,6 +270,15 @@ const Profile = () => {
                     <div className="space-y-3">
                       {/* GitHub Integration */}
                       <GitHubConnectButton onConnectionChange={loadApiIntegrations} />
+                      
+                      {/* Farcaster Integration */}
+                      <FarcasterConnectButton onConnectionChange={loadApiIntegrations} />
+                      
+                      {/* Google Fit Integration */}
+                      <GoogleFitConnectButton onConnectionChange={loadApiIntegrations} />
+                      
+                      {/* Wakatime Integration */}
+                      <WakatimeConnectButton onConnectionChange={loadApiIntegrations} />
                     </div>
                   </>
                 )}
