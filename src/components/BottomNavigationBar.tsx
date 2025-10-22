@@ -10,8 +10,13 @@ const BottomNavigationBar = () => {
     return currentPath === path;
   };
 
+  // Hide navigation bar on landing page
+  if (currentPath === '/') {
+    return null;
+  }
+
   const navItems = [
-    { path: "/", icon: Home, label: "Home" },
+    { path: "/home", icon: Home, label: "Home" },
     { path: "/discover", icon: Compass, label: "Discover" },
     { path: "/profile", icon: User, label: "Profile" },
   ];

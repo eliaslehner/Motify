@@ -24,6 +24,7 @@ interface AuthContextType {
   isLoading: boolean;
   isInMiniApp: boolean;
   connectWallet: () => Promise<void>;
+  signInWithBase: () => Promise<void>;
   disconnect: () => void;
 }
 
@@ -37,7 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Wagmi hooks for web wallet connection
   const { address: wagmiAddress, isConnected: wagmiIsConnected } = useAccount();
-  const { connect, connectors } = useConnect();
+  const { connect, connectAsync, connectors } = useConnect();
 
   useEffect(() => {
     initializeAuth();
@@ -136,23 +137,75 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           });
         }
       } else {
-        // On web - try to use MetaMask first, then any available connector
-        const metaMaskConnector = connectors.find((c) => c.id === 'metaMask' || c.name === 'MetaMask');
-        const injectedConnector = connectors.find((c) => c.id === 'injected');
-        const coinbaseConnector = connectors.find((c) => c.id === 'coinbaseWalletSDK');
+        // On web - use Coinbase Wallet connector (Smart Wallet) from Wagmi
+        const coinbaseConnector = connectors.find((c) => c.id === 'coinbaseWalletSDK' || c.id === 'coinbaseWallet');
 
-        // Use the first available connector in priority order
-        const connector = metaMaskConnector || injectedConnector || coinbaseConnector || connectors[0];
-
-        if (connector) {
-          console.log('Connecting with:', connector.name || connector.id);
-          connect({ connector });
+        if (coinbaseConnector) {
+          console.log('Connecting with Coinbase Wallet (Smart Wallet)');
+          connect({ connector: coinbaseConnector });
         } else {
-          console.error('No wallet connector found');
+          console.error('Coinbase Wallet connector not found');
         }
       }
     } catch (error) {
       console.error('Failed to connect wallet:', error);
+    }
+  };
+
+  // Sign in with Base using SIWE flow (for web only)
+  const signInWithBase = async () => {
+    if (isInMiniApp) {
+      console.log('Already authenticated in Mini App');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      console.log('[SignIn] Starting Base Account sign-in flow...');
+      console.log('[SignIn] Available connectors:', connectors.map(c => ({ id: c.id, name: c.name })));
+
+      // Find the Coinbase Wallet connector (which handles Base Account / Smart Wallet)
+      const baseAccountConnector = connectors.find(
+        (connector) => connector.id === 'coinbaseWalletSDK' || connector.id === 'coinbaseWallet'
+      );
+
+      if (!baseAccountConnector) {
+        console.error('[SignIn] Coinbase Wallet connector not found in available connectors');
+        throw new Error('Coinbase Wallet connector not found. Please ensure wagmi is properly configured.');
+      }
+
+      console.log('[SignIn] Found Coinbase Wallet connector (Smart Wallet):', {
+        id: baseAccountConnector.id,
+        name: baseAccountConnector.name,
+        type: baseAccountConnector.type
+      });
+
+      // The Base Account connector with connectAsync already handles the SIWE flow internally
+      // We just need to connect, and wagmi will handle the rest
+      console.log('[SignIn] Connecting with Base Account...');
+      const result = await connectAsync({ connector: baseAccountConnector });
+      
+      console.log('[SignIn] Connection successful:', {
+        accounts: result.accounts,
+        chainId: result.chainId
+      });
+
+      // The wallet state will be automatically updated by the useEffect watching wagmiAddress and wagmiIsConnected
+      console.log('[SignIn] Sign-in completed successfully');
+    } catch (error: any) {
+      console.error('[SignIn] Sign in with Base failed:', {
+        error,
+        message: error?.message,
+        code: error?.code,
+        stack: error?.stack
+      });
+      
+      // Clear any partial wallet state on error
+      setWallet(null);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -179,6 +232,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         isInMiniApp,
         connectWallet,
+        signInWithBase,
         disconnect,
       }}
     >

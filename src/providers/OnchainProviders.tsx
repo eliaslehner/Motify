@@ -4,17 +4,16 @@ import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { baseSepolia } from 'wagmi/chains';
-import { coinbaseWallet, metaMask, injected } from 'wagmi/connectors';
+import { coinbaseWallet } from 'wagmi/connectors';
 
-// Setup Wagmi config
+// Setup Wagmi config with Coinbase Wallet (Smart Wallet)
+// This is the connector for Base Account
 const config = createConfig({
   chains: [baseSepolia],
   connectors: [
-    metaMask(),
-    injected(),
     coinbaseWallet({
       appName: 'Motify',
-      preference: 'smartWalletOnly',
+      preference: 'smartWalletOnly', // This enables Base Account / Smart Wallet
     }),
   ],
   transports: {

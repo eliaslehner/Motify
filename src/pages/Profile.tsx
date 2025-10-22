@@ -1,7 +1,7 @@
 // pages/Profile.tsx
 import { Trophy, Target, DollarSign, TrendingUp, Coins, CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar as ShadcnAvatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,14 +11,15 @@ import { apiService, UserApiIntegrations, ApiUserStats, fetchUserStatsFromBacken
 import { useReadContract, useAccount } from "wagmi";
 import { CONTRACTS, ABIS } from "@/contract";
 import { formatUnits } from "viem";
-import { Button } from "@/components/ui/button";
 import GitHubConnectButton from "@/components/GitHubConnectButton";
 import FarcasterConnectButton from "@/components/FarcasterConnectButton";
 import GoogleFitConnectButton from "@/components/GoogleFitConnectButton";
 import WakatimeConnectButton from "@/components/WakatimeConnectButton";
+import { Avatar, Name } from '@coinbase/onchainkit/identity';
+import { base } from 'viem/chains';
 
 const Profile = () => {
-  const { user, wallet, isLoading } = useAuth();
+  const { user, wallet, isLoading, isInMiniApp } = useAuth();
   const { address } = useAccount();
   const [userStats, setUserStats] = useState<ApiUserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -167,23 +168,58 @@ const Profile = () => {
           <>
             {/* Profile Info */}
             <div className="flex items-center gap-4 mb-6">
-              <Avatar className="h-24 w-24 border-2 border-border">
-                <AvatarImage
-                  src={user?.pfpUrl}
-                  alt={user?.displayName || "Profile"}
-                  className="object-cover"
-                />
-                <AvatarFallback className="text-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-                  {user?.displayName?.substring(0, 2).toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
+              {/* Avatar: Use OnchainKit for web users, Farcaster pfp for mini app */}
+              {isInMiniApp ? (
+                <ShadcnAvatar className="h-24 w-24 border-2 border-border">
+                  <AvatarImage
+                    src={user?.pfpUrl}
+                    alt={user?.displayName || "Profile"}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="text-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                    {user?.displayName?.substring(0, 2).toUpperCase() || "U"}
+                  </AvatarFallback>
+                </ShadcnAvatar>
+              ) : (
+                (address || wallet?.address) && (
+                  <div className="h-24 w-24 border-2 border-border rounded-full overflow-hidden">
+                    <Avatar
+                      address={address || wallet?.address as `0x${string}`}
+                      chain={base}
+                      className="h-full w-full"
+                    />
+                  </div>
+                )
+              )}
+              
               <div className="flex-1">
-                <h2 className="text-xl font-bold mb-1">
-                  {user?.displayName || "Anonymous User"}
-                </h2>
-                <p className="text-sm text-muted-foreground mb-1">
-                  @{user?.username || "user"}
-                </p>
+                {/* Display Name: Use OnchainKit for web users, Farcaster name for mini app */}
+                {isInMiniApp ? (
+                  <>
+                    <h2 className="text-xl font-bold mb-1">
+                      {user?.displayName || "User"}
+                    </h2>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      @{user?.username || "user"}
+                    </p>
+                  </>
+                ) : (
+                  (address || wallet?.address) && (
+                    <>
+                      <h2 className="text-xl font-bold mb-1">
+                        Base User
+                      </h2>
+                      <p className="text-sm text-muted-foreground mb-1 flex items-center gap-0">
+                        <span>@</span>
+                        <Name
+                          address={address || wallet?.address as `0x${string}`}
+                          chain={base}
+                        />
+                      </p>
+                    </>
+                  )
+                )}
+                
                 {(wallet?.address || address) && (
                   <p className="text-xs text-muted-foreground font-mono">
                     {(address || wallet?.address)?.substring(0, 6)}...{(address || wallet?.address)?.substring((address || wallet?.address)!.length - 4)}
@@ -268,8 +304,8 @@ const Profile = () => {
                       Connect your accounts to participate in challenges
                     </p>
                     <div className="space-y-3">
-                      {/* Farcaster Integration */}
-                      <FarcasterConnectButton onConnectionChange={loadApiIntegrations} />
+                      {/* Farcaster Integration - Auto-connected via Base authentication */}
+                      <FarcasterConnectButton />
 
                       {/* GitHub Integration */}
                       <GitHubConnectButton onConnectionChange={loadApiIntegrations} />

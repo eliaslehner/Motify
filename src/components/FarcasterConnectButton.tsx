@@ -2,109 +2,26 @@
 // Farcaster connection button component
 
 import { CheckCircle2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface FarcasterConnectButtonProps {
   onConnectionChange?: (connected: boolean) => void;
 }
 
 const FarcasterConnectButton = ({ onConnectionChange }: FarcasterConnectButtonProps) => {
-  const { toast } = useToast();
-  const { address } = useAccount();
-  const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
+  const { isAuthenticated, isInMiniApp, wallet } = useAuth();
 
-  useEffect(() => {
-    if (address) {
-      checkConnection();
-    } else {
-      setLoading(false);
-    }
-  }, [address]);
+  // Farcaster is automatically connected when user is authenticated
+  // (either through miniapp or Base wagmi connector)
+  const connected = isAuthenticated && (wallet?.isConnected || false);
 
-  const checkConnection = async () => {
-    if (!address) return;
-
-    setLoading(true);
-    try {
-      // TODO: Implement actual Farcaster connection check
-      // const status = await checkFarcasterCredentials(address);
-      // setConnected(status.has_credentials);
-      setConnected(false);
-    } catch (error) {
-      console.error('Error checking Farcaster connection:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleConnect = async () => {
-    if (!address) {
-      toast({
-        title: 'Wallet Not Connected',
-        description: 'Please connect your wallet first.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      // TODO: Implement Farcaster OAuth flow
-      toast({
-        title: 'Coming Soon',
-        description: 'Farcaster integration will be available soon!',
-      });
-    } catch (error) {
-      console.error('Error connecting Farcaster:', error);
-      toast({
-        title: 'Connection Error',
-        description: error instanceof Error ? error.message : 'Failed to connect to Farcaster',
-        variant: 'destructive',
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    if (!address) return;
-
-    if (!confirm('Are you sure you want to disconnect Farcaster?')) {
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      // TODO: Implement Farcaster disconnect
-      setConnected(false);
-      onConnectionChange?.(false);
-
-      toast({
-        title: 'Farcaster Disconnected',
-        description: 'Your Farcaster account has been disconnected.',
-      });
-    } catch (error) {
-      console.error('Error disconnecting Farcaster:', error);
-      toast({
-        title: 'Disconnection Error',
-        description: error instanceof Error ? error.message : 'Failed to disconnect Farcaster account',
-        variant: 'destructive',
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  if (!address) {
+  // If wallet is not connected, show disabled state
+  if (!wallet?.isConnected) {
     return (
-      <div className="w-full rounded-lg p-3 border border-[hsl(220_20%_20%)] bg-[hsl(220_20%_18%)] opacity-50">
+      <div className="w-full rounded-lg p-3 opacity-50" style={{ backgroundColor: '#8A63D2' }}>
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 bg-purple-600">
-            <img src="/farcaster-icon.svg" alt="Farcaster" className="w-5 h-5" />
+          <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 overflow-hidden">
+            <img src="/farcaster-icon.svg" alt="Farcaster" className="w-full h-full object-cover" />
           </div>
           <div className="flex-1 text-left">
             <span className="font-medium text-[hsl(220_15%_95%)]">Farcaster</span>
@@ -115,32 +32,13 @@ const FarcasterConnectButton = ({ onConnectionChange }: FarcasterConnectButtonPr
     );
   }
 
-  if (loading) {
-    return (
-      <div className="w-full rounded-lg p-3 border border-[hsl(220_20%_20%)] bg-[hsl(220_20%_18%)]">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 bg-purple-600">
-            <img src="/farcaster-icon.svg" alt="Farcaster" className="w-5 h-5" />
-          </div>
-          <div className="flex-1 text-left">
-            <span className="font-medium text-[hsl(220_15%_95%)]">Farcaster</span>
-            <p className="text-xs text-[hsl(220_10%_65%)]">Loading...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // Display connected state (non-interactive)
   return (
-    <button
-      onClick={connected ? handleDisconnect : handleConnect}
-      disabled={actionLoading}
-      className="w-full rounded-lg p-3 transition-all duration-200 border border-[hsl(220_20%_20%)] bg-[hsl(220_20%_18%)] hover:bg-[hsl(220_20%_22%)] disabled:opacity-50 disabled:cursor-not-allowed"
-    >
+    <div className="w-full rounded-lg p-3 border" style={{ backgroundColor: '#8A63D2' }}>
       <div className="flex items-center gap-3">
         {/* Icon container */}
-        <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 bg-purple-600">
-          <img src="/farcaster-icon.svg" alt="Farcaster" className="w-5 h-5" />
+        <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 overflow-hidden">
+          <img src="/farcaster-icon.svg" alt="Farcaster" className="w-full h-full object-cover" />
         </div>
         
         {/* Text content */}
@@ -148,34 +46,20 @@ const FarcasterConnectButton = ({ onConnectionChange }: FarcasterConnectButtonPr
           <span className="font-medium text-[hsl(220_15%_95%)]">
             Farcaster
           </span>
-          {actionLoading && (
-            <p className="text-xs text-[hsl(220_10%_65%)]">
-              {connected ? 'Disconnecting...' : 'Connecting...'}
-            </p>
-          )}
+          <p className="text-xs text-[hsl(220_15%_95%)]">
+            {isInMiniApp ? 'Integrated with Base Mini App' : 'Integrated with Base Account'}
+          </p>
         </div>
         
         {/* Status indicator */}
         <div className="shrink-0 flex items-center gap-2">
-          {connected && !actionLoading && (
-            <CheckCircle2 className="w-4 h-4 text-[hsl(142_76%_36%)]" />
-          )}
-          <span className={`
-            text-sm font-medium
-            ${
-              connected
-                ? "text-[hsl(142_76%_36%)]"
-                : "text-[hsl(221_83%_53%)]"
-            }
-          `}>
-            {actionLoading 
-              ? (connected ? 'Disconnecting' : 'Connecting')
-              : (connected ? 'Connected' : 'Connect')
-            }
+          <CheckCircle2 className="w-4 h-4 text-[hsl(220_15%_95%)]" />
+          <span className="text-sm font-medium text-[hsl(220_15%_95%)]">
+            Connected
           </span>
         </div>
       </div>
-    </button>
+    </div>
   );
 };
 

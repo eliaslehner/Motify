@@ -10,20 +10,20 @@
   "miniapp": {
     "version": "1",
     "name": "Motify",
-    "homeUrl": "https://motify-nine.vercel.app",
-    "iconUrl": "https://motify-nine.vercel.app/favicon.png",
-    "splashImageUrl": "https://motify-nine.vercel.app/splashImage.svg",
+    "homeUrl": "https://motify.live",
+    "iconUrl": "https://motify.live/favicon.png",
+    "splashImageUrl": "https://motify.live/splashImage.svg",
     "splashBackgroundColor": "#FDF7EC",
     "subtitle": "Challenges yourself",
     "description": "Transform your goals into verifiable challenges with financial accountability. Stake USDC, achieve your goals, or donate to charity.",
     "screenshotUrls": [],
     "primaryCategory": "social",
     "tags": ["challenge", "goals", "accountability", "crypto"],
-    "heroImageUrl": "https://motify-nine.vercel.app/cardImage.png",
+    "heroImageUrl": "https://motify.live/cardImage.png",
     "tagline": "Challenge yourself",
     "ogTitle": "Motify",
     "ogDescription": "Transform your goals into verifiable challenges.",
-    "ogImageUrl": "https://motify-nine.vercel.app/cardImage.png",
+    "ogImageUrl": "https://motify.live/cardImage.png",
     "noindex": true
   }
 }

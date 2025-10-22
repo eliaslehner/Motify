@@ -594,7 +594,7 @@ const ChallengeDetail = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="p-8 text-center bg-gradient-to-br from-card to-card/50 border-border/50">
           <p className="text-muted-foreground mb-4">Challenge not found</p>
-          <Link to="/">
+          <Link to="/home">
             <Button>Go Home</Button>
           </Link>
         </Card>

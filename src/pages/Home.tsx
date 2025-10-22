@@ -1,12 +1,11 @@
 // pages/Home.tsx
 import { useState, useEffect } from "react";
 import { Plus, Trophy, Target, Zap, TrendingUp } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { WebLogin } from "@/components/WebLogin";
 import { WalletStatus } from "@/components/WalletStatus";
 import { PageHeader } from "@/components/PageHeader";
 import { ChallengeCard, Challenge } from "@/components/ChallengeCard";
@@ -47,6 +46,7 @@ interface HomeChallenge {
 
 const Home = () => {
   const { user, wallet, isLoading: authLoading, isInMiniApp, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [userChallenges, setUserChallenges] = useState<HomeChallenge[]>([]);
 
   // Read challenges from blockchain for the user
@@ -88,9 +88,12 @@ const Home = () => {
     }
   }, [blockchainChallenges]);
 
-  if (!isInMiniApp && !isAuthenticated && !authLoading) {
-    return <WebLogin />;
-  }
+  // Redirect to landing if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
