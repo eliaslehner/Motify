@@ -3,13 +3,13 @@ import { ReactNode } from 'react';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { baseSepolia } from 'wagmi/chains';
+import { base } from 'wagmi/chains';
 import { coinbaseWallet } from 'wagmi/connectors';
 
 // Setup Wagmi config with Coinbase Wallet (Smart Wallet)
 // This is the connector for Base Account
 const config = createConfig({
-  chains: [baseSepolia],
+  chains: [base],
   connectors: [
     coinbaseWallet({
       appName: 'Motify',
@@ -17,7 +17,7 @@ const config = createConfig({
     }),
   ],
   transports: {
-    [baseSepolia.id]: http(),
+    [base.id]: http(),
   },
 });
 
@@ -33,7 +33,7 @@ export function OnchainProviders({ children }: OnchainProvidersProps) {
       <QueryClientProvider client={queryClient}>
         <OnchainKitProvider
           apiKey={import.meta.env.VITE_ONCHAINKIT_API_KEY}
-          chain={baseSepolia}
+          chain={base}
           config={{
             appearance: {
               mode: 'auto',

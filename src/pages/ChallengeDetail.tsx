@@ -819,7 +819,7 @@ const ChallengeDetail = () => {
               </div>
               <p className="font-mono text-xs break-all text-foreground/80">{CONTRACTS.MOTIFY}</p>
               <a
-                href={`https://sepolia.basescan.org/address/${CONTRACTS.MOTIFY}`}
+                href={`https://basescan.org/address/${CONTRACTS.MOTIFY}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 mt-2"
