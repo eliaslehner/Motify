@@ -532,7 +532,7 @@ const ChallengeDetail = () => {
   const handleShare = async () => {
     if (!challenge) return;
 
-    const shareText = `Join my ${challenge.name} challenge! 🎯\n\nGoal: ${challenge.goalAmount.toString()} ${challenge.goalType}\nParticipants: ${challenge.participants.length}\nTotal Pool: ${formatUnits(totalStake, 6)} USDC`;
+    const shareText = `Join me in this '${challenge.name}' challenge! 🎯\n\nGoal: ${challenge.goalAmount.toString()} ${challenge.goalType}\nParticipants: ${challenge.participants.length}\nCurrent Pool: ${formatUnits(totalStake, 6)} USDC`;
 
     composeCast({
       text: shareText,

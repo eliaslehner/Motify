@@ -268,11 +268,11 @@ const Profile = () => {
                       Connect your accounts to participate in challenges
                     </p>
                     <div className="space-y-3">
-                      {/* GitHub Integration */}
-                      <GitHubConnectButton onConnectionChange={loadApiIntegrations} />
-                      
                       {/* Farcaster Integration */}
                       <FarcasterConnectButton onConnectionChange={loadApiIntegrations} />
+
+                      {/* GitHub Integration */}
+                      <GitHubConnectButton onConnectionChange={loadApiIntegrations} />
                       
                       {/* Google Fit Integration */}
                       <GoogleFitConnectButton onConnectionChange={loadApiIntegrations} />
