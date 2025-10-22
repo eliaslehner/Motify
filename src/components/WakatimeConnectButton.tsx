@@ -1,7 +1,7 @@
 // components/WakatimeConnectButton.tsx
-// Wakatime connection button component
+// Wakatime connection button component with backend integration
 
-import { CheckCircle2, Key, Save } from 'lucide-react';
+import { CheckCircle2, Key } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
@@ -17,29 +17,32 @@ const WakatimeConnectButton = ({ onConnectionChange }: WakatimeConnectButtonProp
   const { toast } = useToast();
   const { address } = useAccount();
   const [apiKey, setApiKey] = useState('');
-  const [originalApiKey, setOriginalApiKey] = useState('');
+  const [hasApiKey, setHasApiKey] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     if (address) {
-      loadApiKey();
-    } else {
-      setLoading(false);
+      checkApiKey();
     }
   }, [address]);
 
-  const loadApiKey = async () => {
+  const checkApiKey = async () => {
     if (!address) return;
 
     setLoading(true);
     try {
-      const savedKey = await wakatimeService.getApiKey(address);
-      setApiKey(savedKey || '');
-      setOriginalApiKey(savedKey || '');
+      const result = await wakatimeService.checkApiKey(address);
+      setHasApiKey(result.has_api_key);
+      
+      console.log('[WakaTime] Connection status checked:', {
+        wallet: address,
+        hasApiKey: result.has_api_key,
+      });
     } catch (error) {
-      console.error('Error loading Wakatime API key:', error);
+      console.error('Error checking Wakatime API key:', error);
+      setHasApiKey(false);
     } finally {
       setLoading(false);
     }
@@ -48,18 +51,40 @@ const WakatimeConnectButton = ({ onConnectionChange }: WakatimeConnectButtonProp
   const saveApiKey = async () => {
     if (!address) return;
 
+    const trimmedKey = apiKey.trim();
+    
+    // Validate API key format
+    if (!trimmedKey.startsWith('waka_')) {
+      toast({
+        title: 'Invalid API Key',
+        description: 'WakaTime API key must start with "waka_"',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setSaving(true);
     setShowSuccess(false);
     try {
-      await wakatimeService.saveApiKey(address, apiKey.trim());
+      console.log('[WakaTime] Saving API key to backend...');
+
+      await wakatimeService.saveApiKey(address, trimmedKey);
       
-      setOriginalApiKey(apiKey.trim());
+      setHasApiKey(true);
+      setApiKey(''); // Clear input after successful save
       setShowSuccess(true);
       
-      // Hide success indicator after 2 seconds
-      setTimeout(() => setShowSuccess(false), 2000);
+      console.log('[WakaTime] API key saved successfully');
       
-      onConnectionChange?.(apiKey.trim().length > 0);
+      // Hide success indicator after 3 seconds
+      setTimeout(() => setShowSuccess(false), 3000);
+      
+      onConnectionChange?.(true);
+      
+      toast({
+        title: 'Success',
+        description: 'WakaTime API key saved successfully',
+      });
     } catch (error) {
       console.error('Error saving Wakatime API key:', error);
       toast({
@@ -77,7 +102,6 @@ const WakatimeConnectButton = ({ onConnectionChange }: WakatimeConnectButtonProp
     setShowSuccess(false);
   };
 
-  const isModified = apiKey.trim() !== originalApiKey;
   const hasValue = apiKey.trim().length > 0;
 
   if (!address) {
@@ -122,7 +146,7 @@ const WakatimeConnectButton = ({ onConnectionChange }: WakatimeConnectButtonProp
         <div className="flex-1 text-left">
           <span className="font-medium text-black">Wakatime</span>
           <p className="text-xs text-black">
-            {originalApiKey ? 'Update your API key' : 'Paste your API key'}
+            {hasApiKey ? 'Connected - Update key' : 'Enter your API key'}
           </p>
         </div>
         {showSuccess && (
@@ -131,7 +155,7 @@ const WakatimeConnectButton = ({ onConnectionChange }: WakatimeConnectButtonProp
             <span className="text-xs font-medium">Saved</span>
           </div>
         )}
-        {!showSuccess && originalApiKey && !isModified && (
+        {!showSuccess && hasApiKey && !hasValue && (
           <CheckCircle2 className="w-4 h-4 text-[hsl(142_76%_36%)] shrink-0" />
         )}
       </div>
@@ -146,20 +170,14 @@ const WakatimeConnectButton = ({ onConnectionChange }: WakatimeConnectButtonProp
           className="pl-10 bg-white border-[hsl(220_20%_25%)] text-black placeholder:text-[hsl(220_10%_50%)] disabled:opacity-50"
         />
       </div>
-      {isModified && hasValue && (
+      {hasValue && (
         <Button
           onClick={saveApiKey}
           disabled={saving}
           className="w-full bg-[hsl(221_83%_53%)] hover:bg-[hsl(221_83%_48%)] text-white"
           size="sm"
         >
-          {saving ? (
-            <>Saving...</>
-          ) : (
-            <>
-              Save API Key
-            </>
-          )}
+          {saving ? 'Saving...' : 'Save API Key'}
         </Button>
       )}
     </div>

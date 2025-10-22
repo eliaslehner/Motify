@@ -334,13 +334,13 @@ class ApiService {
    * Get user's API integrations status
    * @param walletAddress - User's EVM wallet address
    * @returns Object containing status of all API integrations
+   * 
+   * Note: WakaTime status requires signature verification and should be 
+   * checked directly via WakatimeConnectButton component
    */
   async getUserApiIntegrations(walletAddress: string): Promise<UserApiIntegrations> {
     // Check GitHub connection status
     const githubStatus = await githubService.checkCredentials(walletAddress);
-    
-    // Check WakaTime connection status
-    const wakatimeKey = await wakatimeService.getApiKey(walletAddress);
     
     return {
       github: {
@@ -349,11 +349,8 @@ class ApiService {
         username: githubStatus.username,
         connectedAt: githubStatus.connected_at,
       },
-      wakatime: {
-        provider: 'github', // Type limitation, but we'll use it for WakaTime
-        isConnected: !!wakatimeKey,
-        connectedAt: wakatimeKey ? new Date().toISOString() : undefined,
-      },
+      // WakaTime status is checked separately via WakatimeConnectButton
+      // which handles signature verification
     };
   }
 }
@@ -429,77 +426,105 @@ export const githubService = {
 
 /**
  * WakaTime Service Layer
- * Manages WakaTime API key storage and retrieval
- * Currently uses in-memory storage with console logging for debugging
- * Will be replaced with actual backend API calls in the future
+ * Manages WakaTime API key storage and retrieval through backend API
+ * Simple API key management without signature verification
  */
 export const wakatimeService = {
-  // In-memory storage for API keys (temporary, for debugging)
-  _storage: new Map<string, string>(),
-
   /**
    * Save WakaTime API key for a wallet address
    * @param walletAddress - User's EVM wallet address
-   * @param apiKey - WakaTime API key
+   * @param apiKey - WakaTime API key (must start with 'waka_')
+   * @throws Error if API key format is invalid or backend request fails
    */
-  saveApiKey: async (walletAddress: string, apiKey: string): Promise<void> => {
-    console.log('[WakaTime Service] Saving API key:', {
-      wallet: walletAddress,
-      apiKeyLength: apiKey.length,
-      apiKeyPrefix: apiKey.substring(0, 10) + '...',
-      timestamp: new Date().toISOString(),
-    });
+  saveApiKey: async (
+    walletAddress: string, 
+    apiKey: string
+  ): Promise<void> => {
+    // Validate API key format
+    if (!apiKey.startsWith('waka_')) {
+      throw new Error('Invalid WakaTime API key format. Key must start with "waka_"');
+    }
 
-    // Store in memory for now
-    wakatimeService._storage.set(walletAddress.toLowerCase(), apiKey);
+    const baseUrl = import.meta.env.VITE_BACKEND_API_URL || 'https://motify-backend-3k55.onrender.com';
+    
+    const response = await fetch(
+      `${baseUrl}/oauth/wakatime/api-key`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          wallet_address: walletAddress.toLowerCase(),
+          api_key: apiKey 
+        }),
+      }
+    );
 
-    // TODO: Replace with actual backend API call
-    // const baseUrl = import.meta.env.VITE_API_URL || 'https://motify-backend-3k55.onrender.com';
-    // const response = await fetch(`${baseUrl}/wakatime/save-key`, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ wallet: walletAddress, apiKey }),
-    // });
-    // if (!response.ok) throw new Error('Failed to save WakaTime API key');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Failed to save WakaTime API key');
+    }
 
-    console.log('[WakaTime Service] API key saved successfully');
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error('Failed to save WakaTime API key');
+    }
   },
 
   /**
-   * Retrieve WakaTime API key for a wallet address
+   * Check if wallet has a WakaTime API key stored
    * @param walletAddress - User's EVM wallet address
-   * @returns The stored API key or null if not found
+   * @returns Object with has_api_key boolean
    */
-  getApiKey: async (walletAddress: string): Promise<string | null> => {
-    console.log('[WakaTime Service] Fetching API key for wallet:', walletAddress);
+  checkApiKey: async (
+    walletAddress: string
+  ): Promise<{ has_api_key: boolean }> => {
+    const baseUrl = import.meta.env.VITE_BACKEND_API_URL || 'https://motify-backend-3k55.onrender.com';
+    
+    const response = await fetch(
+      `${baseUrl}/oauth/wakatime/api-key/${walletAddress.toLowerCase()}`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
 
-    // Get from memory for now
-    const apiKey = wakatimeService._storage.get(walletAddress.toLowerCase()) || null;
+    if (!response.ok) {
+      if (response.status === 404) {
+        return { has_api_key: false };
+      }
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Failed to check WakaTime API key');
+    }
 
-    // TODO: Replace with actual backend API call
-    // const baseUrl = import.meta.env.VITE_API_URL || 'https://motify-backend-3k55.onrender.com';
-    // const response = await fetch(`${baseUrl}/wakatime/get-key?wallet=${walletAddress}`);
-    // if (!response.ok) {
-    //   if (response.status === 404) return null;
-    //   throw new Error('Failed to fetch WakaTime API key');
-    // }
-    // const data = await response.json();
-    // const apiKey = data.apiKey || null;
-
-    console.log('[WakaTime Service] API key fetch result:', {
-      wallet: walletAddress,
-      found: !!apiKey,
-      apiKeyLength: apiKey?.length || 0,
-    });
-
-    return apiKey;
+    const data = await response.json();
+    return { has_api_key: data.has_api_key || false };
   },
 
   /**
-   * Clear in-memory storage (for debugging purposes)
+   * Remove WakaTime API key for a wallet address
+   * @param walletAddress - User's EVM wallet address
    */
-  clearStorage: () => {
-    console.log('[WakaTime Service] Clearing in-memory storage');
-    wakatimeService._storage.clear();
+  removeApiKey: async (
+    walletAddress: string
+  ): Promise<void> => {
+    const baseUrl = import.meta.env.VITE_BACKEND_API_URL || 'https://motify-backend-3k55.onrender.com';
+    
+    const response = await fetch(
+      `${baseUrl}/oauth/wakatime/api-key/${walletAddress.toLowerCase()}`,
+      {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Failed to remove WakaTime API key');
+    }
+
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error('Failed to remove WakaTime API key');
+    }
   },
 };

@@ -59,10 +59,22 @@ const CreateChallenge = () => {
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.id]: e.target.value,
-    });
+    const { id, value } = e.target;
+    
+    // Special handling for goal input when Wakatime + Coding Time is selected
+    if (id === 'goal' && apiProvider === 'wakatime' && activityType === 'coding-time') {
+      // Only allow integer values (no decimals)
+      const integerValue = value.replace(/[^\d]/g, ''); // Remove all non-digit characters
+      setFormData({
+        ...formData,
+        [id]: integerValue,
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [id]: value,
+      });
+    }
   };
 
   useEffect(() => {
@@ -135,6 +147,21 @@ const CreateChallenge = () => {
       return;
     }
 
+    // Validate Wakatime API key exists if Wakatime is selected
+    if (apiProvider === 'wakatime') {
+      toast.error("Wakatime challenges require an API key. Please add your Wakatime API key in your Profile page before creating a challenge.");
+      return;
+    }
+
+    // Validate goal is a positive integer for Wakatime coding time
+    if (apiProvider === 'wakatime' && activityType === 'coding-time') {
+      const goalValue = parseInt(formData.goal);
+      if (isNaN(goalValue) || goalValue <= 0) {
+        toast.error("Please enter a valid positive number for coding hours goal");
+        return;
+      }
+    }
+
     // Combine date and time
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const [endHour, endMinute] = endTime.split(':').map(Number);
@@ -193,6 +220,9 @@ const CreateChallenge = () => {
       const endTimeTimestamp = Math.floor(endDateTime.getTime() / 1000);
       const goalAmount = BigInt(formData.goal);
 
+      // Map the frontend activity type to the contract-expected format
+      const contractActivityType = mapActivityTypeToContract(activityType);
+
       toast.info("Please confirm the transaction in your wallet...");
 
       writeContract({
@@ -206,7 +236,7 @@ const CreateChallenge = () => {
           isPrivate,
           formData.name,
           apiProvider,
-          activityType,
+          contractActivityType, // Use mapped activity type
           goalAmount,
           formData.description,
           whitelistedParticipants,
@@ -274,6 +304,32 @@ const CreateChallenge = () => {
       ];
     }
     return [];
+  };
+
+  // Map frontend activity type values to backend/contract expected values
+  const mapActivityTypeToContract = (type: string): string => {
+    const mapping: Record<string, string> = {
+      'commits': 'COMMITS',
+      'pull-requests': 'PULL_REQUESTS',
+      'issues': 'ISSUES_FIXED',
+      'casts': 'CASTS',
+      'coding-time': 'CODING_TIME',
+    };
+    return mapping[type] || type.toUpperCase();
+  };
+
+  // Get the display unit for the goal input based on activity type
+  const getGoalUnit = () => {
+    if (apiProvider === 'wakatime' && activityType === 'coding-time') {
+      return 'hours';
+    } else if (apiProvider === 'github') {
+      if (activityType === 'commits') return 'commits';
+      if (activityType === 'pull-requests') return 'PRs';
+      if (activityType === 'issues') return 'issues';
+    } else if (apiProvider === 'farcaster' && activityType === 'casts') {
+      return 'casts';
+    }
+    return '';
   };
 
   // Update end time when start time changes to ensure it's at least 1 minute later
@@ -443,18 +499,27 @@ const CreateChallenge = () => {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="goal">Goal</Label>
+                <Label htmlFor="goal">
+                  Goal {getGoalUnit() && `(${getGoalUnit()})`}
+                </Label>
                 <Input
                   id="goal"
-                  type="number"
-                  placeholder="e.g., 10000"
+                  type={apiProvider === 'wakatime' && activityType === 'coding-time' ? 'text' : 'number'}
+                  inputMode={apiProvider === 'wakatime' && activityType === 'coding-time' ? 'numeric' : 'decimal'}
+                  placeholder={
+                    apiProvider === 'wakatime' && activityType === 'coding-time' 
+                      ? 'e.g., 24' 
+                      : 'e.g., 10000'
+                  }
                   required
                   className="bg-background"
                   value={formData.goal}
                   onChange={handleInputChange}
                 />
                 <p className="text-xs text-muted-foreground">
-                  The target value participants must achieve
+                  {apiProvider === 'wakatime' && activityType === 'coding-time'
+                    ? 'Enter total coding hours to achieve (integers only)'
+                    : 'The target value participants must achieve'}
                 </p>
               </div>
             </div>
