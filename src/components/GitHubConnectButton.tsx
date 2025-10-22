@@ -152,8 +152,10 @@ const GitHubConnectButton = ({ onConnectionChange }: GitHubConnectButtonProps) =
             <img src="/github-icon.svg" alt="Github" className="w-full h-full object-cover" />
           </div>
           <div className="flex-1 text-left">
-            <span className="font-medium text-[hsl(220_15%_95%)]">GitHub</span>
-            <p className="text-xs text-[hsl(220_10%_65%)]">Loading...</p>
+            <span className="font-medium text-white">GitHub</span>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            <span className="text-sm font-medium text-white">Loading</span>
           </div>
         </div>
       </div>
@@ -177,16 +179,16 @@ const GitHubConnectButton = ({ onConnectionChange }: GitHubConnectButtonProps) =
         
         {/* Text content */}
         <div className="flex-1 text-left">
-          <span className="font-medium text-[hsl(220_15%_95%)]">
+          <span className="font-medium text-white">
             GitHub
           </span>
           {connected && username && (
-            <p className="text-xs text-[hsl(220_10%_65%)]">
+            <p className="text-xs text-white">
               @{username}
             </p>
           )}
           {actionLoading && (
-            <p className="text-xs text-[hsl(220_10%_65%)]">
+            <p className="text-xs text-white">
               {connected ? 'Disconnecting...' : 'Connecting...'}
             </p>
           )}
@@ -195,14 +197,14 @@ const GitHubConnectButton = ({ onConnectionChange }: GitHubConnectButtonProps) =
         {/* Status indicator */}
         <div className="shrink-0 flex items-center gap-2">
           {connected && !actionLoading && (
-            <CheckCircle2 className="w-4 h-4 text-[hsl(142_76%_36%)]" />
+            <CheckCircle2 className="w-4 h-4 text-white" />
           )}
           <span className={`
             text-sm font-medium
             ${
               connected
-                ? "text-[hsl(142_76%_36%)]"
-                : "text-[hsl(221_83%_53%)]"
+                ? "text-white"
+                : "text-white"
             }
           `}>
             {actionLoading 

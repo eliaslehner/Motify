@@ -13,12 +13,6 @@ export function getServiceInfo(serviceType: string): ServiceInfo {
     const normalizedType = serviceType.toLowerCase();
 
     switch (normalizedType) {
-        case 'strava':
-            return {
-                name: 'STRAVA',
-                logo: '/strava_logo.svg',
-                color: 'bg-orange-500'
-            };
         case 'github':
             return {
                 name: 'GITHUB',
@@ -30,14 +24,6 @@ export function getServiceInfo(serviceType: string): ServiceInfo {
                 name: 'FARCASTER',
                 logo: '/farcaster-icon.svg',
                 color: 'bg-purple-600'
-            };
-        case 'googlefit':
-        case 'google-fit':
-        case 'google_fit':
-            return {
-                name: 'GOOGLE FIT',
-                logo: '/google-icon.png',
-                color: 'bg-blue-500'
             };
         case 'wakatime':
             return {

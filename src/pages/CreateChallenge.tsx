@@ -258,13 +258,7 @@ const CreateChallenge = () => {
 
   // Get available activity types based on selected API provider
   const getActivityTypes = () => {
-    if (apiProvider === "strava") {
-      return [
-        { value: "steps", label: "Steps (Walking)", icon: "🚶" },
-        { value: "distance-run", label: "Distance (Running)", icon: "🏃" },
-        { value: "distance-ride", label: "Distance (Cycling)", icon: "🚴" },
-      ];
-    } else if (apiProvider === "github") {
+    if (apiProvider === "github") {
       return [
         { value: "commits", label: "Commits", icon: "💻" },
         { value: "pull-requests", label: "Pull Requests", icon: "🔀" },
@@ -273,20 +267,10 @@ const CreateChallenge = () => {
     } else if (apiProvider === "farcaster") {
       return [
         { value: "casts", label: "Casts", icon: "📢" },
-        { value: "likes", label: "Likes", icon: "❤️" },
-        { value: "recasts", label: "Recasts", icon: "🔁" },
-      ];
-    } else if (apiProvider === "googlefit") {
-      return [
-        { value: "steps", label: "Steps", icon: "🚶" },
-        { value: "distance", label: "Distance", icon: "📏" },
-        { value: "calories", label: "Calories Burned", icon: "🔥" },
       ];
     } else if (apiProvider === "wakatime") {
       return [
         { value: "coding-time", label: "Coding Time (hours)", icon: "⏱️" },
-        { value: "projects", label: "Projects Worked On", icon: "📁" },
-        { value: "languages", label: "Languages Used", icon: "💬" },
       ];
     }
     return [];
@@ -409,14 +393,6 @@ const CreateChallenge = () => {
                     <SelectValue placeholder="Select API provider" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="strava">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-bold">
-                          S
-                        </div>
-                        <span>Strava</span>
-                      </div>
-                    </SelectItem>
                     <SelectItem value="github">
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 rounded-full bg-gray-800 dark:bg-gray-200 flex items-center justify-center text-white dark:text-gray-800 text-xs font-bold">
@@ -431,14 +407,6 @@ const CreateChallenge = () => {
                           <img src="/farcaster-icon.svg" alt="Farcaster" className="w-3 h-3" />
                         </div>
                         <span>Farcaster</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="googlefit">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center overflow-hidden">
-                          <img src="/google-icon.png" alt="Google Fit" className="w-3 h-3" />
-                        </div>
-                        <span>Google Fit</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="wakatime">
@@ -475,7 +443,7 @@ const CreateChallenge = () => {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="goal">Daily Goal</Label>
+                <Label htmlFor="goal">Goal</Label>
                 <Input
                   id="goal"
                   type="number"
@@ -486,7 +454,7 @@ const CreateChallenge = () => {
                   onChange={handleInputChange}
                 />
                 <p className="text-xs text-muted-foreground">
-                  The target value participants must achieve each day
+                  The target value participants must achieve
                 </p>
               </div>
             </div>

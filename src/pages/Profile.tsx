@@ -13,7 +13,6 @@ import { CONTRACTS, ABIS } from "@/contract";
 import { formatUnits } from "viem";
 import GitHubConnectButton from "@/components/GitHubConnectButton";
 import FarcasterConnectButton from "@/components/FarcasterConnectButton";
-import GoogleFitConnectButton from "@/components/GoogleFitConnectButton";
 import WakatimeConnectButton from "@/components/WakatimeConnectButton";
 import { Avatar, Name } from '@coinbase/onchainkit/identity';
 import { base } from 'viem/chains';
@@ -209,13 +208,13 @@ const Profile = () => {
                       <h2 className="text-xl font-bold mb-1">
                         Base User
                       </h2>
-                      <p className="text-sm text-muted-foreground mb-1 flex items-center gap-0">
+                      <div className="text-sm text-muted-foreground mb-1 flex items-center gap-0">
                         <span>@</span>
                         <Name
                           address={address || wallet?.address as `0x${string}`}
                           chain={base}
                         />
-                      </p>
+                      </div>
                     </>
                   )
                 )}
@@ -309,9 +308,6 @@ const Profile = () => {
 
                       {/* GitHub Integration */}
                       <GitHubConnectButton onConnectionChange={loadApiIntegrations} />
-                      
-                      {/* Google Fit Integration */}
-                      <GoogleFitConnectButton onConnectionChange={loadApiIntegrations} />
                       
                       {/* Wakatime Integration */}
                       <WakatimeConnectButton onConnectionChange={loadApiIntegrations} />
