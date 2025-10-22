@@ -46,9 +46,6 @@ const FarcasterConnectButton = ({ onConnectionChange }: FarcasterConnectButtonPr
           <span className="font-medium text-[hsl(220_15%_95%)]">
             Farcaster
           </span>
-          <p className="text-xs text-[hsl(220_15%_95%)]">
-            {isInMiniApp ? 'Integrated with Base Mini App' : 'Integrated with Base Account'}
-          </p>
         </div>
         
         {/* Status indicator */}

@@ -132,8 +132,8 @@ const GitHubConnectButton = ({ onConnectionChange }: GitHubConnectButtonProps) =
     return (
       <div className="w-full rounded-lg p-3 border border-[hsl(220_20%_20%)] bg-[hsl(220_20%_18%)] opacity-50">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 bg-[hsl(220_20%_25%)]">
-            <Github className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 overflow-hidden">
+            <img src="/github-icon.svg" alt="Github" className="w-full h-full object-cover" />
           </div>
           <div className="flex-1 text-left">
             <span className="font-medium text-[hsl(220_15%_95%)]">GitHub</span>
@@ -148,8 +148,8 @@ const GitHubConnectButton = ({ onConnectionChange }: GitHubConnectButtonProps) =
     return (
       <div className="w-full rounded-lg p-3 border border-[hsl(220_20%_20%)] bg-[hsl(220_20%_18%)]">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 bg-[hsl(220_20%_25%)]">
-            <Github className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 overflow-hidden">
+            <img src="/github-icon.svg" alt="Github" className="w-full h-full object-cover" />
           </div>
           <div className="flex-1 text-left">
             <span className="font-medium text-[hsl(220_15%_95%)]">GitHub</span>
@@ -171,8 +171,8 @@ const GitHubConnectButton = ({ onConnectionChange }: GitHubConnectButtonProps) =
     >
       <div className="flex items-center gap-3">
         {/* Icon container */}
-        <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 bg-[hsl(220_20%_25%)]">
-          <Github className="w-5 h-5 text-white" />
+        <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 overflow-hidden">
+          <img src="/github-icon.svg" alt="Github" className="w-full h-full object-cover" />
         </div>
         
         {/* Text content */}

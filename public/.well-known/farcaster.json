@@ -6,7 +6,7 @@
   },
   "baseBuilder": {
     "ownerAddress": "0xD919790B73d45527b8a63d0288049C5f235D5b11",
-    "allowedAddresses": ["0xD919790B73d45527b8a63d0288049C5f235D5b11", "0x478134C02E8E7Bb42855394F2587fC541A41B928","0x94cEB2273c0482EA6dBf1C78B34226BE7dB1eEb8"]
+    "allowedAddresses": ["0xD919790B73d45527b8a63d0288049C5f235D5b11"]
   },
   "miniapp": {
     "version": "1",
