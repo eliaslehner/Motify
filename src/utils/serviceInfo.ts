@@ -16,7 +16,7 @@ export function getServiceInfo(serviceType: string): ServiceInfo {
         case 'github':
             return {
                 name: 'GITHUB',
-                logo: '/github-white.svg',
+                logo: '/github-icon.svg',
                 color: 'bg-black'
             };
         case 'farcaster':
