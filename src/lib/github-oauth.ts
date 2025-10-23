@@ -88,16 +88,39 @@ export async function initiateGitHubConnection(
       timestamp: timestamp.toString(),
     });
 
-    const response = await fetch(
-      `${BACKEND_API_URL}/oauth/connect/github?${params.toString()}`
-    );
+    const url = `${BACKEND_API_URL}/oauth/connect/github?${params.toString()}`;
+    
+    console.log('=== initiateGitHubConnection ===');
+    console.log('Request URL:', url);
+    console.log('Wallet Address:', walletAddress);
+    console.log('Signature:', signature);
+    console.log('Timestamp:', timestamp);
+    console.log('Message that should be verified:', createConnectMessage(walletAddress, timestamp));
+
+    const response = await fetch(url);
+
+    console.log('Response status:', response.status);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to initiate OAuth connection');
+      const errorText = await response.text();
+      console.error('Error response body:', errorText);
+      
+      let error;
+      try {
+        error = JSON.parse(errorText);
+      } catch {
+        error = { detail: errorText };
+      }
+      
+      const errorMessage = error.detail || 'Failed to initiate OAuth connection';
+      console.error('Parsed error:', error);
+      throw new Error(`Signature verification failed: ${response.status}: ${errorMessage}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('Success response:', result);
+    return result;
   } catch (error) {
     console.error('Error initiating GitHub connection:', error);
     throw error;
@@ -122,17 +145,36 @@ export async function disconnectGitHub(
       timestamp: timestamp.toString(),
     });
 
-    const response = await fetch(
-      `${BACKEND_API_URL}/oauth/disconnect/github/${walletAddress}?${params.toString()}`,
-      { method: 'DELETE' }
-    );
+    const url = `${BACKEND_API_URL}/oauth/disconnect/github/${walletAddress}?${params.toString()}`;
+    
+    console.log('=== disconnectGitHub ===');
+    console.log('Request URL:', url);
+    console.log('Wallet Address:', walletAddress);
+    console.log('Signature:', signature);
+    console.log('Timestamp:', timestamp);
+    console.log('Message that should be verified:', createDisconnectMessage(walletAddress, timestamp));
+
+    const response = await fetch(url, { method: 'DELETE' });
+
+    console.log('Response status:', response.status);
 
     if (!response.ok) {
-      const error = await response.json();
+      const errorText = await response.text();
+      console.error('Error response body:', errorText);
+      
+      let error;
+      try {
+        error = JSON.parse(errorText);
+      } catch {
+        error = { detail: errorText };
+      }
+      
       throw new Error(error.detail || 'Failed to disconnect GitHub');
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('Success response:', result);
+    return result;
   } catch (error) {
     console.error('Error disconnecting GitHub:', error);
     throw error;

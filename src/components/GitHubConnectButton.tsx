@@ -64,10 +64,20 @@ const GitHubConnectButton = ({ onConnectionChange }: GitHubConnectButtonProps) =
       // Create signature to prove wallet ownership
       const timestamp = getCurrentTimestamp();
       const message = createConnectMessage(address, timestamp);
+      
+      console.log('=== GitHub Connect Debug ===');
+      console.log('Wallet address:', address);
+      console.log('Timestamp:', timestamp);
+      console.log('Message to sign:', message);
+      
       const signature = await signMessageAsync({ 
         account: address,
         message 
       });
+      
+      console.log('Signature generated:', signature);
+      console.log('Signature type:', typeof signature);
+      console.log('Signature length:', signature.length);
 
       // Get auth URL from backend
       const { auth_url } = await initiateGitHubConnection(
@@ -75,6 +85,8 @@ const GitHubConnectButton = ({ onConnectionChange }: GitHubConnectButtonProps) =
         signature,
         timestamp
       );
+
+      console.log('Auth URL received:', auth_url);
 
       // Redirect to GitHub authorization page
       window.location.href = auth_url;
@@ -101,10 +113,18 @@ const GitHubConnectButton = ({ onConnectionChange }: GitHubConnectButtonProps) =
       // Create signature to prove wallet ownership
       const timestamp = getCurrentTimestamp();
       const message = createDisconnectMessage(address, timestamp);
+      
+      console.log('=== GitHub Disconnect Debug ===');
+      console.log('Wallet address:', address);
+      console.log('Timestamp:', timestamp);
+      console.log('Message to sign:', message);
+      
       const signature = await signMessageAsync({ 
         account: address,
         message 
       });
+      
+      console.log('Signature generated:', signature);
 
       // Call disconnect endpoint
       await disconnectGitHub(address, signature, timestamp);
