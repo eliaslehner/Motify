@@ -451,7 +451,7 @@ export const wakatimeService = {
       throw new Error('Invalid WakaTime API key format. Key must start with "waka_"');
     }
 
-    const baseUrl = import.meta.env.VITE_BACKEND_API_URL || 'https://motify-backend-3k55.onrender.com';
+    const baseUrl = import.meta.env.STATS_API_URL || 'https://motify-backend-3k55.onrender.com';
     
     const response = await fetch(
       `${baseUrl}/oauth/wakatime/api-key`,
@@ -484,7 +484,7 @@ export const wakatimeService = {
   checkApiKey: async (
     walletAddress: string
   ): Promise<{ has_api_key: boolean }> => {
-    const baseUrl = import.meta.env.VITE_BACKEND_API_URL || 'https://motify-backend-3k55.onrender.com';
+    const baseUrl = import.meta.env.STATS_API_URL || 'https://motify-backend-3k55.onrender.com';
     
     const response = await fetch(
       `${baseUrl}/oauth/wakatime/api-key/${walletAddress.toLowerCase()}`,
@@ -513,7 +513,7 @@ export const wakatimeService = {
   removeApiKey: async (
     walletAddress: string
   ): Promise<void> => {
-    const baseUrl = import.meta.env.VITE_BACKEND_API_URL || 'https://motify-backend-3k55.onrender.com';
+    const baseUrl = import.meta.env.STATS_API_URL || 'https://motify-backend-3k55.onrender.com';
     
     const response = await fetch(
       `${baseUrl}/oauth/wakatime/api-key/${walletAddress.toLowerCase()}`,
