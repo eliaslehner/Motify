@@ -11,19 +11,19 @@
     "version": "1",
     "name": "Motify",
     "homeUrl": "https://motify.live",
-    "iconUrl": "https://motify.live/favicon.png",
+    "iconUrl": "https://motify.live/iconUrl.png",
     "splashImageUrl": "https://motify.live/splashImage.svg",
-    "splashBackgroundColor": "#FDF7EC",
+    "splashBackgroundColor": "#000000",
     "subtitle": "Challenges yourself",
     "description": "Transform your goals into verifiable challenges with financial accountability. Stake USDC, achieve your goals, or donate to charity.",
     "screenshotUrls": [],
     "primaryCategory": "social",
     "tags": ["challenge", "goals", "accountability", "crypto"],
-    "heroImageUrl": "https://motify.live/cardImage.png",
+    "heroImageUrl": "https://motify.live/heroImageUrl.png",
     "tagline": "Challenge yourself",
     "ogTitle": "Motify",
     "ogDescription": "Transform your goals into verifiable challenges.",
-    "ogImageUrl": "https://motify.live/cardImage.png",
+    "ogImageUrl": "https://motify.live/heroImageUrl.png",
     "noindex": true
   }
 }
