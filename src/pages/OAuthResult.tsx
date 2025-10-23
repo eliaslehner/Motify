@@ -50,7 +50,7 @@ export default function OAuthResult() {
       }
     } else {
       // No result in localStorage, redirect to profile
-      toast.error("No OAuth result found.");
+      // toast.error("No OAuth result found.");
       navigate("/profile");
     }
     
