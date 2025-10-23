@@ -2,91 +2,71 @@
 // Handles OAuth callback results from backend
 
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle } from 'lucide-react';
-
-type ResultState = 'success' | 'error';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export default function OAuthResult() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [state, setState] = useState<ResultState | null>(null);
-  const [provider, setProvider] = useState<string>('');
-  const [error, setError] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(true);
 
   useEffect(() => {
-    const success = searchParams.get('success') === 'true';
-    const providerParam = searchParams.get('provider');
-    const errorParam = searchParams.get('error');
-
-    setProvider(providerParam || 'service');
+    // Read OAuth result from localStorage (set by the callback HTML page)
+    const resultJson = localStorage.getItem('oauth_result');
     
-    if (success) {
-      setState('success');
-      // Auto-redirect after 2 seconds
-      setTimeout(() => {
-        navigate('/profile');
-      }, 2000);
+    if (resultJson) {
+      try {
+        const result = JSON.parse(resultJson);
+        
+        // Clear the stored result
+        localStorage.removeItem('oauth_result');
+        
+        // Check if result is recent (within last 30 seconds)
+        const resultAge = Date.now() - result.timestamp;
+        if (resultAge > 30000) {
+          toast.error("OAuth session expired. Please try again.");
+          navigate("/profile");
+          return;
+        }
+        
+        if (result.success) {
+          toast.success(`Successfully connected ${result.provider}!`);
+          navigate("/profile");
+        } else {
+          const errorMessage = result.error === "invalid_state"
+            ? "Invalid OAuth state. Please try again."
+            : result.error === "expired_state"
+            ? "OAuth session expired. Please try again."
+            : result.error === "token_exchange_failed"
+            ? "Failed to exchange token. Please try again."
+            : "OAuth authentication failed.";
+          
+          toast.error(errorMessage);
+          navigate("/profile");
+        }
+      } catch (e) {
+        console.error("Failed to parse OAuth result:", e);
+        toast.error("OAuth authentication failed.");
+        navigate("/profile");
+      }
     } else {
-      setState('error');
-      setError(errorParam || 'Unknown error occurred');
+      // No result in localStorage, redirect to profile
+      toast.error("No OAuth result found.");
+      navigate("/profile");
     }
-  }, [searchParams, navigate]);
+    
+    setIsProcessing(false);
+  }, [navigate]);
 
-  if (!state) {
+  if (isProcessing) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full p-8">
-          <div className="flex flex-col items-center text-center space-y-4">
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-        </Card>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Processing OAuth result...</p>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="max-w-md w-full p-8">
-        <div className="flex flex-col items-center text-center space-y-4">
-          {state === 'success' && (
-            <>
-              <div className="h-16 w-16 rounded-full bg-green-500/20 flex items-center justify-center">
-                <CheckCircle2 className="h-10 w-10 text-green-500" />
-              </div>
-              <h1 className="text-2xl font-bold text-green-500">Success!</h1>
-              <p className="text-muted-foreground">
-                Your {provider} account has been linked successfully.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Redirecting to your profile...
-              </p>
-            </>
-          )}
-
-          {state === 'error' && (
-            <>
-              <div className="h-16 w-16 rounded-full bg-red-500/20 flex items-center justify-center">
-                <XCircle className="h-10 w-10 text-red-500" />
-              </div>
-              <h1 className="text-2xl font-bold text-red-500">
-                Authentication Failed
-              </h1>
-              <p className="text-muted-foreground">
-                Error: {error}
-              </p>
-              <Button
-                onClick={() => navigate('/profile')}
-                className="mt-4"
-              >
-                Return to Profile
-              </Button>
-            </>
-          )}
-        </div>
-      </Card>
-    </div>
-  );
+  return null;
 }
