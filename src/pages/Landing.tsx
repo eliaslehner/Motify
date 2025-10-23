@@ -67,12 +67,12 @@ export const Landing = () => {
       <div className="container mx-auto px-4 pt-20 pb-12">
         <div className="max-w-4xl mx-auto text-center">
           {/* Logo/Icon */}
-          <div className="w-24 h-24 mx-auto mb-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg">
-            <Trophy className="h-12 w-12 text-white" />
+          <div className="w-24 h-24 mx-auto mb-8 rounded-full flex items-center justify-center shadow-lg">
+            <img src="/iconUrl.png" alt="Motify" className="w-full h-full object-contain" />
           </div>
 
           {/* Main Heading */}
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 text-white">
             Welcome to Motify
           </h1>
 

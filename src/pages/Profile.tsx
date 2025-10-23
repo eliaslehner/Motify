@@ -5,6 +5,7 @@ import { Avatar as ShadcnAvatar, AvatarFallback, AvatarImage } from "@/component
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useEffect, useState } from "react";
 import { apiService, UserApiIntegrations, ApiUserStats, fetchUserStatsFromBackend } from "@/services/api";
@@ -19,6 +20,7 @@ import { base } from 'viem/chains';
 
 const Profile = () => {
   const { user, wallet, isLoading, isInMiniApp } = useAuth();
+  const { theme } = useTheme();
   const { address } = useAccount();
   const [userStats, setUserStats] = useState<ApiUserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -318,6 +320,13 @@ const Profile = () => {
                 )}
               </Card>
             </div>
+
+            {/* Motify Banner */}
+            <img 
+                src={theme === 'dark' ? '/bannerMotify_white.svg' : '/bannerMotify_black.svg'} 
+                alt="Motify Banner" 
+                className="w-24 h-auto object-contain items-center mx-auto" 
+              />
           </>
         )}
       </main>

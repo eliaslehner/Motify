@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { WalletStatus } from "@/components/WalletStatus";
 import { PageHeader } from "@/components/PageHeader";
 import { ChallengeCard, Challenge } from "@/components/ChallengeCard";
@@ -46,6 +47,7 @@ interface HomeChallenge {
 
 const Home = () => {
   const { user, wallet, isLoading: authLoading, isInMiniApp, isAuthenticated } = useAuth();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const [userChallenges, setUserChallenges] = useState<HomeChallenge[]>([]);
 
@@ -98,7 +100,16 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <PageHeader
-        title="My Challenges"
+        title={
+          <div className="flex items-center justify-between w-full">
+            <span>My Challenges</span>
+            <img 
+              src={theme === 'dark' ? '/iconMotify_white.svg' : '/iconMotify_black.svg'} 
+              alt="Motify Icon" 
+              className="h-8 w-8 object-contain" 
+            />
+          </div>
+        }
       />
 
       <main className="container mx-auto px-4 py-6">
