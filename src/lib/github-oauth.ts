@@ -18,7 +18,8 @@
  * 8. Backend redirects user to frontend with success/error
  */
 
-const BACKEND_API_URL = import.meta.env.STATS_API_URL || 'http://localhost:8000';
+const BACKEND_API_URL = import.meta.env.STATS_API_URL;
+/*const BACKEND_API_URL = import.meta.env.STATS_API_URL || 'http://localhost:8000';*/
 
 export interface GitHubConnectionStatus {
   has_credentials: boolean;
