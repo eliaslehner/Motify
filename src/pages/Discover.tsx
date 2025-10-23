@@ -175,7 +175,7 @@ const Discover = () => {
       <PageHeader title="Discover" />
 
       {/* Controls */}
-      <div className="sticky top-16 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+      <div className="bg-background border-b border-border">
         <div className="container mx-auto px-4 py-4 space-y-4">
           <div className="flex gap-2 flex-wrap">
             {/* Participation Filter - Only show when wallet is connected */}
