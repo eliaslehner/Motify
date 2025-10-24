@@ -19,6 +19,7 @@ import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from 
 import { CONTRACT_ADDRESS, MOTIFY_ABI } from "@/contract";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { wakatimeService } from "@/services/api";
 
 const CreateChallenge = () => {
   const navigate = useNavigate();
@@ -147,10 +148,19 @@ const CreateChallenge = () => {
       return;
     }
 
-    // Validate Wakatime API key exists if Wakatime is selected
+    // Validate Wakatime API key exists if Wakatime is selected (check backend)
     if (apiProvider === 'wakatime') {
-      toast.error("Wakatime challenges require an API key. Please add your Wakatime API key in your Profile page before creating a challenge.");
-      return;
+      try {
+        const res = await wakatimeService.checkApiKey(wallet.address);
+        if (!res.has_api_key) {
+          toast.error("Wakatime challenges require an API key. Please add your Wakatime API key in your Profile page before creating a challenge.");
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to verify Wakatime API key:', err);
+        toast.error("Could not verify your Wakatime API key. Please try again.");
+        return;
+      }
     }
 
     // Validate goal is a positive integer for Wakatime coding time
