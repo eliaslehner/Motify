@@ -48,7 +48,7 @@ export function ChallengeCard({ challenge, isParticipating = false }: ChallengeC
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
                             <div
-                                className={`w-12 h-12 rounded-full ${serviceInfo.color} flex items-center justify-center shadow-md overflow-hidden shrink-0 aspect-square transform-gpu ${isGithub ? "border-2 border-black" : ""
+                                className={`w-12 h-12 rounded-full ${serviceInfo.color} flex items-center justify-center shadow-md overflow-hidden shrink-0 aspect-square transform-gpu ${(isGithub || true) ? "border-2 border-black" : ""}
                                     }`}
                             >
                                 {serviceInfo.logo ? (

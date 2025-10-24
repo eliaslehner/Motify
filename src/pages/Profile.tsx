@@ -317,6 +317,36 @@ const Profile = () => {
                       
                       {/* Wakatime Integration */}
                       <WakatimeConnectButton onConnectionChange={loadApiIntegrations} />
+
+                      {/* Strava (Coming Soon) */}
+                      <div className="w-full rounded-lg p-3 border border-[hsl(220_20%_20%)] bg-[hsl(220_20%_18%)] opacity-60">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 overflow-hidden">
+                            <img src="/strava-icon.svg" alt="Strava" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <span className="font-medium text-[hsl(220_15%_95%)]">Strava</span>
+                          </div>
+                          <div className="shrink-0">
+                            <span className="text-sm font-medium text-[hsl(220_10%_65%)]">Coming Soon</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Fitbit (Coming Soon) */}
+                      <div className="w-full rounded-lg p-3 border border-[hsl(220_20%_20%)] bg-[hsl(220_20%_18%)] opacity-60">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 overflow-hidden">
+                            <img src="/fitbit-icon.svg" alt="Fitbit" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <span className="font-medium text-[hsl(220_15%_95%)]">Fitbit</span>
+                          </div>
+                          <div className="shrink-0">
+                            <span className="text-sm font-medium text-[hsl(220_10%_65%)]">Coming Soon</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </>
                 )}

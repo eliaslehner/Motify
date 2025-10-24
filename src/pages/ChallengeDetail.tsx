@@ -684,7 +684,7 @@ const ChallengeDetail = () => {
 
           <div className="relative">
             <div className="flex items-start gap-4 mb-4">
-              <div className={`w-16 h-16 rounded-full ${serviceInfo.color} flex items-center justify-center shadow-lg overflow-hidden shrink-0 ${isGithub ? 'border-2 border-black' : ''}`}>
+              <div className={`w-16 h-16 rounded-full ${serviceInfo.color} flex items-center justify-center shadow-lg overflow-hidden shrink-0 border-2 border-black`}>
                 {serviceInfo.logo ? (
                   <img
                     src={serviceInfo.logo}

@@ -23,13 +23,13 @@ export function getServiceInfo(serviceType: string): ServiceInfo {
             return {
                 name: 'FARCASTER',
                 logo: '/farcaster-icon.svg',
-                color: 'bg-purple-600'
+                color: 'bg-black'
             };
         case 'wakatime':
             return {
                 name: 'WAKATIME',
                 logo: '/wakatime-icon.svg',
-                color: 'bg-gray-800'
+                color: 'bg-black'
             };
         default:
             return {
