@@ -24,6 +24,6 @@
     "ogTitle": "Motify",
     "ogDescription": "Transform your goals into verifiable challenges.",
     "ogImageUrl": "https://motify.live/heroImageUrl.png",
-    "noindex": true
+    "noindex": false
   }
 }
