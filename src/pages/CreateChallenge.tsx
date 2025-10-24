@@ -1,5 +1,5 @@
 // pages/CreateChallenge.tsx
-import { ArrowLeft, Calendar, DollarSign, Target, Heart, Wallet, Info, TrendingUp, CalendarIcon } from "lucide-react";
+import { ArrowLeft, Calendar, DollarSign, Target, Heart, Wallet, Info, TrendingUp, CalendarIcon, Github } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -301,7 +301,7 @@ const CreateChallenge = () => {
     if (apiProvider === "github") {
       // Only allow GitHub public contributions per day
       return [
-        { value: "contribution_per_day", label: "Contributions per day", icon: "�" },
+        { value: "contribution_per_day", label: "Public Contributions per Day", icon: "⚙️" },
       ];
     } else if (apiProvider === "farcaster") {
       // Only allow Farcaster casts per day
@@ -465,8 +465,8 @@ const CreateChallenge = () => {
                   <SelectContent>
                     <SelectItem value="github">
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-gray-800 dark:bg-gray-200 flex items-center justify-center text-white dark:text-gray-800 text-xs font-bold">
-                          G
+                        <div className="w-5 h-5 rounded-full bg-gray-800 dark:bg-gray-200 flex items-center justify-center">
+                          <Github className="w-3 h-3 text-white dark:text-gray-800" />
                         </div>
                         <span>GitHub</span>
                       </div>

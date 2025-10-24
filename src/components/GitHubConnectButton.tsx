@@ -189,7 +189,11 @@ const GitHubConnectButton = ({ onConnectionChange }: GitHubConnectButtonProps) =
     <button
       onClick={connected ? handleDisconnect : handleConnect}
       disabled={actionLoading}
-      className="w-full rounded-lg p-3 transition-all duration-200 border border-[hsl(220_20%_20%)] bg-[hsl(220_20%_18%)] hover:bg-[hsl(220_20%_22%)] disabled:opacity-50 disabled:cursor-not-allowed"
+      className={`w-full rounded-lg p-3 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border ${
+        connected
+          ? 'bg-[#835BCD] hover:bg-[#7650C0] border-transparent'
+          : 'border-[hsl(220_20%_20%)] bg-[hsl(220_20%_18%)] hover:bg-[hsl(220_20%_22%)]'
+      }`}
     >
       <div className="flex items-center gap-3">
         {/* Icon container */}
@@ -219,14 +223,7 @@ const GitHubConnectButton = ({ onConnectionChange }: GitHubConnectButtonProps) =
           {connected && !actionLoading && (
             <CheckCircle2 className="w-4 h-4 text-white" />
           )}
-          <span className={`
-            text-sm font-medium
-            ${
-              connected
-                ? "text-white"
-                : "text-white"
-            }
-          `}>
+          <span className={`text-sm font-medium text-white`}>
             {actionLoading 
               ? (connected ? 'Disconnecting' : 'Connecting')
               : (connected ? 'Connected' : 'Connect')

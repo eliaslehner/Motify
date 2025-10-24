@@ -1,6 +1,6 @@
 // Reusable challenge card component
 import { Link } from "react-router-dom";
-import { Users, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Users, TrendingUp, CheckCircle2, Lock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChallengeStatusBadge } from "@/components/ChallengeStatusBadge";
@@ -71,18 +71,17 @@ export function ChallengeCard({ challenge, isParticipating = false }: ChallengeC
                             </div>
                         </div>
                         {/* Status Badge */}
-                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                            {isParticipating && (
-                                <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border border-blue-500/20 font-medium">
-                                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                                    Joined
-                                </Badge>
-                            )}
+                        <div className="flex flex-col items-end gap-1.5 flex-shrink-0 ml-2">
                             <ChallengeStatusBadge
                                 startDate={challenge.startDate}
                                 endDate={challenge.endDate}
                                 isCompleted={challenge.isCompleted}
                             />
+                            {isParticipating && (
+                                <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border border-blue-500/20 font-medium">
+                                    Joined
+                                </Badge>
+                            )}
                         </div>
                     </div>
                     <p className="text-sm text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
@@ -99,6 +98,9 @@ export function ChallengeCard({ challenge, isParticipating = false }: ChallengeC
                                 <span className="text-sm font-semibold text-foreground">
                                     {challenge.participants}
                                 </span>
+                                {challenge.isPrivate && (
+                                    <Lock className="h-3.5 w-3.5 text-muted-foreground ml-1" />
+                                )}
                             </div>
                         </div>
                     </div>

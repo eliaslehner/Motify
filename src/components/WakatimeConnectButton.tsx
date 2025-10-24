@@ -137,26 +137,36 @@ const WakatimeConnectButton = ({ onConnectionChange }: WakatimeConnectButtonProp
   }
 
   return (
-    <div className="w-full rounded-lg p-3 border border-[hsl(220_20%_20%)] bg-white">
-      <div className="flex items-center gap-3 mb-2">
+    <div
+      className={`w-full rounded-lg p-3 border ${
+        hasApiKey
+          ? 'bg-[#835BCD] border-transparent'
+          : 'border-[hsl(220_20%_20%)] bg-[hsl(220_20%_18%)]'
+      }`}
+    >
+  <div className="flex items-center gap-3 mb-2">
         <div className="flex items-center justify-center w-9 h-9 rounded-full shrink-0 overflow-hidden">
           <img src="/wakatime-icon.svg" alt="Wakatime" className="w-full h-full object-cover" />
         </div>
 
         <div className="flex-1 text-left">
-          <span className="font-medium text-black">Wakatime</span>
-          <p className="text-xs text-black">
-            {hasApiKey ? 'Connected - Update key' : 'Enter your API key'}
+          <span className="font-medium text-white">Wakatime</span>
+          <p className="text-xs text-white">
+            {hasApiKey ? 'Update your API key' : 'Enter your API key'}
           </p>
         </div>
-        {showSuccess && (
+        {showSuccess ? (
           <div className="flex items-center gap-1 text-[hsl(142_76%_36%)]">
             <CheckCircle2 className="w-4 h-4" />
             <span className="text-xs font-medium">Saved</span>
           </div>
-        )}
-        {!showSuccess && hasApiKey && !hasValue && (
-          <CheckCircle2 className="w-4 h-4 text-[hsl(142_76%_36%)] shrink-0" />
+        ) : (
+          hasApiKey && (
+            <div className="shrink-0 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-white" />
+              <span className="text-sm font-medium text-white">Connected</span>
+            </div>
+          )
         )}
       </div>
       <div className="relative mb-2">
@@ -174,7 +184,7 @@ const WakatimeConnectButton = ({ onConnectionChange }: WakatimeConnectButtonProp
         <Button
           onClick={saveApiKey}
           disabled={saving}
-          className="w-full bg-[hsl(221_83%_53%)] hover:bg-[hsl(221_83%_48%)] text-white"
+          className="w-full bg-[#835BCD] hover:bg-[#7650C0] text-white"
           size="sm"
         >
           {saving ? 'Saving...' : 'Save API Key'}

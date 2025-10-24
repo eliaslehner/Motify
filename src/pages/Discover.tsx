@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { PageHeader } from "@/components/PageHeader";
 import { ChallengeCard, Challenge } from "@/components/ChallengeCard";
 import { calculateDuration, isChallengeUpcoming, isChallengeActive, isChallengeCompleted } from "@/utils/challengeHelpers";
@@ -52,10 +53,11 @@ interface DiscoverChallenge {
 
 const Discover = () => {
   const { wallet } = useAuth();
+  const { theme } = useTheme();
   const [challenges, setChallenges] = useState<DiscoverChallenge[]>([]);
   const [filteredChallenges, setFilteredChallenges] = useState<DiscoverChallenge[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("upcoming");
   const [participationFilter, setParticipationFilter] = useState<ParticipationFilter>("not-participating");
   const [userChallengeIds, setUserChallengeIds] = useState<Set<number>>(new Set());
 
@@ -172,7 +174,16 @@ const Discover = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <PageHeader title="Discover" />
+      <PageHeader
+        title="Discover"
+        actions={
+          <img
+            src={theme === 'dark' ? '/iconMotify_white.svg' : '/iconMotify_black.svg'}
+            alt="Motify Icon"
+            className="h-8 w-8 object-contain"
+          />
+        }
+      />
 
       {/* Controls */}
       <div className="bg-background border-b border-border">

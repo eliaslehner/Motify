@@ -86,6 +86,8 @@ const Home = () => {
           duration,
         };
       });
+      // Sort newest (latest start date) first
+      formattedChallenges.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
       setUserChallenges(formattedChallenges);
     }
   }, [blockchainChallenges]);
@@ -100,15 +102,13 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <PageHeader
-        title={
-          <div className="flex items-center justify-between w-full">
-            <span>My Challenges</span>
-            <img 
-              src={theme === 'dark' ? '/iconMotify_white.svg' : '/iconMotify_black.svg'} 
-              alt="Motify Icon" 
-              className="h-8 w-8 object-contain" 
-            />
-          </div>
+        title="My Challenges"
+        actions={
+          <img
+            src={theme === 'dark' ? '/iconMotify_white.svg' : '/iconMotify_black.svg'}
+            alt="Motify Icon"
+            className="h-8 w-8 object-contain"
+          />
         }
       />
 

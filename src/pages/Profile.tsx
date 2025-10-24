@@ -84,13 +84,22 @@ const Profile = () => {
 
   // Always show stats with default values if data is not loaded
   const stats = [
+    // Row 1
     {
       icon: Trophy,
-      label: "Succeeded",
+      label: "Completed",
       value: userStats ? userStats.challenges_completed.toString() : "0",
       color: "text-success",
       bgColor: "bg-success-light",
     },
+    {
+      icon: TrendingUp,
+      label: "Success Rate",
+      value: userStats ? `${userStats.success_percentage_overall.toFixed(1)}%` : "0.0%",
+      color: "text-accent",
+      bgColor: "bg-accent/10",
+    },
+    // Row 2
     {
       icon: Target,
       label: "Total Wagered",
@@ -104,13 +113,6 @@ const Profile = () => {
       value: userStats ? `${userStats.total_donations.toFixed(2)} USDC` : "0.00 USDC",
       color: "text-warning",
       bgColor: "bg-warning-light",
-    },
-    {
-      icon: TrendingUp,
-      label: "Success Rate",
-      value: userStats ? `${userStats.success_percentage_overall.toFixed(1)}%` : "0.0%",
-      color: "text-accent",
-      bgColor: "bg-accent/10",
     },
   ];
 
