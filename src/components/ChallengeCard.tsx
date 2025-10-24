@@ -46,7 +46,7 @@ export function ChallengeCard({ challenge, isParticipating = false }: ChallengeC
 
                 <div className="relative">
                     <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-1">
                             <div
                                 className={`w-12 h-12 rounded-full ${serviceInfo.color} flex items-center justify-center shadow-md overflow-hidden shrink-0 aspect-square transform-gpu ${(isGithub || true) ? "border-2 border-black" : ""}
                                     }`}
@@ -61,7 +61,7 @@ export function ChallengeCard({ challenge, isParticipating = false }: ChallengeC
                                     <TrendingUp className="w-6 h-6 text-white" />
                                 )}
                             </div>
-                            <div className="flex flex-col">
+                            <div className="flex flex-col flex-1">
                                 <span className="text-xs font-semibold text-muted-foreground tracking-wider">
                                     {serviceInfo.name}
                                 </span>
@@ -69,19 +69,6 @@ export function ChallengeCard({ challenge, isParticipating = false }: ChallengeC
                                     {challenge.title}
                                 </h3>
                             </div>
-                        </div>
-                        {/* Status Badge */}
-                        <div className="flex flex-col items-end gap-1.5 flex-shrink-0 ml-2">
-                            <ChallengeStatusBadge
-                                startDate={challenge.startDate}
-                                endDate={challenge.endDate}
-                                isCompleted={challenge.isCompleted}
-                            />
-                            {isParticipating && (
-                                <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border border-blue-500/20 font-medium">
-                                    Joined
-                                </Badge>
-                            )}
                         </div>
                     </div>
                     <p className="text-sm text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
@@ -92,7 +79,18 @@ export function ChallengeCard({ challenge, isParticipating = false }: ChallengeC
                             <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
                             <span className="font-medium">{challenge.duration}</span>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            {/* Status Badges - horizontal */}
+                            <ChallengeStatusBadge
+                                startDate={challenge.startDate}
+                                endDate={challenge.endDate}
+                                isCompleted={challenge.isCompleted}
+                            />
+                            {isParticipating && (
+                                <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border border-blue-500/20 font-medium">
+                                    Joined
+                                </Badge>
+                            )}
                             <div className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-full">
                                 <Users className="h-3.5 w-3.5 text-muted-foreground" />
                                 <span className="text-sm font-semibold text-foreground">
