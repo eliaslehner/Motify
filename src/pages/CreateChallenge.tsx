@@ -88,40 +88,10 @@ const CreateChallenge = () => {
 
   useEffect(() => {
     if (isConfirmed && receipt) {
-      // Parse the ChallengeCreated event from the transaction logs
-      // The event signature is: ChallengeCreated(uint256 indexed challengeId, address indexed creator, ...)
-      const challengeCreatedTopic = '0x...' // This would be the event signature hash
-
-      // For now, we'll extract the challenge ID from the logs
-      // The first topic after the event signature is the challengeId (since it's indexed)
-      let createdChallengeId: number | null = null;
-
-      if (receipt.logs && receipt.logs.length > 0) {
-        // Find the log that contains ChallengeCreated event
-        // The challengeId should be in the first indexed parameter (topic[1])
-        for (const log of receipt.logs) {
-          if (log.topics && log.topics.length >= 2) {
-            // The challenge ID is in topics[1] (first indexed parameter)
-            const challengeIdHex = log.topics[1];
-            if (challengeIdHex) {
-              createdChallengeId = Number(BigInt(challengeIdHex));
-              break;
-            }
-          }
-        }
-      }
-
       toast.success("Challenge created successfully!");
       setIsSubmitting(false);
-
-      // Navigate to the newly created challenge
-      if (createdChallengeId !== null) {
-        navigate(`/challenge/${createdChallengeId}`);
-      } else {
-        // Fallback: just go to discover page if we can't parse the ID
-        console.warn("Could not parse challenge ID from receipt");
-        navigate('/discover');
-      }
+      // Navigate to discover page after successful creation
+      navigate('/discover');
     }
   }, [isConfirmed, receipt, navigate]);
 
