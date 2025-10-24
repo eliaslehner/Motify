@@ -435,23 +435,23 @@ const CreateChallenge = () => {
                   <SelectContent>
                     <SelectItem value="github">
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-gray-800 dark:bg-gray-200 flex items-center justify-center">
-                          <Github className="w-3 h-3 text-white dark:text-gray-800" />
+                        <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center border-2 border-black">
+                          <Github className="w-3 h-3 text-white" />
                         </div>
                         <span>GitHub</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="farcaster">
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center overflow-hidden">
-                          <img src="/farcaster-icon.svg" alt="Farcaster" className="w-3 h-3" />
+                        <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center overflow-hidden">
+                          <img src="/farcaster-icon-challenge.svg" alt="Farcaster" className="w-4 h-4" />
                         </div>
                         <span>Farcaster</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="wakatime">
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-gray-800 flex items-center justify-center overflow-hidden">
+                        <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center overflow-hidden border-2 border-black">
                           <img src="/wakatime-icon.svg" alt="Wakatime" className="w-full h-full object-cover" />
                         </div>
                         <span>Wakatime</span>
