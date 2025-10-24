@@ -619,22 +619,22 @@ const CreateChallenge = () => {
                     <SelectValue placeholder="Where should failed stakes go?" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="charity1">
+                    <SelectItem value="charity1" disabled>
                       <div className="flex items-center gap-2">
                         <Heart className="h-3 w-3 text-red-500" />
-                        Red Cross
+                        Red Cross (Coming Soon)
                       </div>
                     </SelectItem>
-                    <SelectItem value="charity2">
+                    <SelectItem value="charity2" disabled>
                       <div className="flex items-center gap-2">
                         <Heart className="h-3 w-3 text-red-500" />
-                        UNICEF
+                        UNICEF (Coming Soon)
                       </div>
                     </SelectItem>
-                    <SelectItem value="charity3">
+                    <SelectItem value="charity3" disabled>
                       <div className="flex items-center gap-2">
                         <Heart className="h-3 w-3 text-red-500" />
-                        WWF
+                        WWF (Coming Soon)
                       </div>
                     </SelectItem>
                     <SelectItem value="friend">
