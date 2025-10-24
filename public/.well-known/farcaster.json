@@ -19,11 +19,11 @@
     "screenshotUrls": [],
     "primaryCategory": "social",
     "tags": ["challenge", "goals", "accountability", "crypto"],
-    "heroImageUrl": "https://motify.live/heroImageUrl.png",
+    "heroImageUrl": "https://motify.live/cardImage.png",
     "tagline": "Challenge yourself",
     "ogTitle": "Motify",
     "ogDescription": "Transform your goals into verifiable challenges.",
-    "ogImageUrl": "https://motify.live/heroImageUrl.png",
+    "ogImageUrl": "https://motify.live/cardImage.png",
     "noindex": true
   }
 }
