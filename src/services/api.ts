@@ -1,6 +1,6 @@
 // service/api.ts
 
-import { 
+import {
   checkGitHubCredentials,
   type GitHubConnectionStatus,
 } from '@/lib/github-oauth';
@@ -178,14 +178,14 @@ export function getActivityTypeInfo(activityType?: string) {
   const normalized = activityType.replace(/-/g, '_').toUpperCase();
 
   const activityMap: Record<string, { label: string; icon: string; unit: string; color: string }> = {
-    'COMMITS': { label: 'Commits', icon: '💻', unit: 'Commits', color: 'text-purple-600' },
-    'PULL_REQUESTS': { label: 'Pull Requests', icon: '🔀', unit: 'PRs', color: 'text-indigo-600' },
-    'ISSUES_FIXED': { label: 'Issues Fixed', icon: '🐛', unit: 'Issues', color: 'text-pink-600' },
-    'CASTS': { label: 'Casts', icon: '📢', unit: 'Casts', color: 'text-purple-500' },
-    'CODING_TIME': { label: 'Coding Time', icon: '⏱️', unit: 'Hours', color: 'text-gray-700' },
+    'COMMITS': { label: 'Commits', icon: '', unit: 'Commits', color: 'text-purple-600' },
+    'PULL_REQUESTS': { label: 'Pull Requests', icon: '', unit: 'PRs', color: 'text-indigo-600' },
+    'ISSUES_FIXED': { label: 'Issues Fixed', icon: '', unit: 'Issues', color: 'text-pink-600' },
+    'CASTS': { label: 'Casts', icon: '', unit: 'Casts', color: 'text-purple-500' },
+    'CODING_TIME': { label: 'Coding Time', icon: '', unit: 'Hours', color: 'text-gray-700' },
     // New provider-specific daily goal types
-    'CONTRIBUTION_PER_DAY': { label: 'Contributions per day', icon: '📈', unit: 'Contributions', color: 'text-purple-600' },
-    'CAST_PER_DAY': { label: 'Casts per day', icon: '📢', unit: 'Casts', color: 'text-purple-500' },
+    'CONTRIBUTION_PER_DAY': { label: 'Contributions per day', icon: '', unit: 'Contributions', color: 'text-purple-600' },
+    'CAST_PER_DAY': { label: 'Casts per day', icon: '', unit: 'Casts', color: 'text-purple-500' },
   };
 
   return activityMap[normalized] || null;
@@ -265,46 +265,46 @@ function detectServiceType(challenge: BackendChallenge): 'github' | 'farcaster' 
   if (challenge.service_type) {
     return challenge.service_type;
   }
-  
+
   const titleLower = challenge.name.toLowerCase();
   const descLower = challenge.description.toLowerCase();
-  
-  if (titleLower.includes('github') || titleLower.includes('commit') || 
-      descLower.includes('github') || descLower.includes('repository')) {
+
+  if (titleLower.includes('github') || titleLower.includes('commit') ||
+    descLower.includes('github') || descLower.includes('repository')) {
     return 'github';
   }
-  
-  if (titleLower.includes('farcaster') || titleLower.includes('cast') || 
-      descLower.includes('farcaster')) {
+
+  if (titleLower.includes('farcaster') || titleLower.includes('cast') ||
+    descLower.includes('farcaster')) {
     return 'farcaster';
   }
-  
-  if (titleLower.includes('wakatime') || titleLower.includes('coding') || 
-      descLower.includes('wakatime')) {
+
+  if (titleLower.includes('wakatime') || titleLower.includes('coding') ||
+    descLower.includes('wakatime')) {
     return 'wakatime';
   }
 }
 
 function mapBackendToFrontend(backendChallenge: BackendChallenge, userWalletAddress?: string): Challenge {
   const totalStake = backendChallenge.participants.reduce((sum, p) => sum + p.amountUsd, 0);
-  
+
   // Calculate participation status
-  const isUserParticipating = userWalletAddress 
-    ? backendChallenge.participants.some(p => 
-        p.walletAddress.toLowerCase() === userWalletAddress.toLowerCase()
-      )
+  const isUserParticipating = userWalletAddress
+    ? backendChallenge.participants.some(p =>
+      p.walletAddress.toLowerCase() === userWalletAddress.toLowerCase()
+    )
     : false;
-  
-  const userStakeAmount = userWalletAddress 
-    ? backendChallenge.participants.find(p => 
-        p.walletAddress.toLowerCase() === userWalletAddress.toLowerCase()
-      )?.amountUsd || 0
+
+  const userStakeAmount = userWalletAddress
+    ? backendChallenge.participants.find(p =>
+      p.walletAddress.toLowerCase() === userWalletAddress.toLowerCase()
+    )?.amountUsd || 0
     : 0;
 
   // Determine if user can join (not completed and not already participating)
-  const canJoin = !backendChallenge.completed && 
-                 !isUserParticipating && 
-                 !isChallengeCompleted(backendChallenge.end_date);
+  const canJoin = !backendChallenge.completed &&
+    !isUserParticipating &&
+    !isChallengeCompleted(backendChallenge.end_date);
 
   return {
     id: backendChallenge.id,
@@ -347,7 +347,7 @@ class ApiService {
   async getUserApiIntegrations(walletAddress: string): Promise<UserApiIntegrations> {
     // Check GitHub connection status
     const githubStatus = await githubService.checkCredentials(walletAddress);
-    
+
     return {
       github: {
         provider: 'github',
@@ -371,15 +371,15 @@ export const apiService = new ApiService();
 export async function fetchUserStatsFromBackend(walletAddress: string): Promise<ApiUserStats> {
   // TESTING: Uncomment the line below to test with a hardcoded wallet address
   // walletAddress = "0xD919790B73d45527b8a63d0288049C5f235D5b11";
-  
+
   const baseUrl = import.meta.env.STATS_API_URL || 'https://motify-backend-3k55.onrender.com';
   const url = `${baseUrl}/stats/user?wallet=${walletAddress}`;
-  
+
   console.log('Fetching stats from:', url);
   console.log('Wallet address:', walletAddress);
-  
+
   const response = await fetch(url);
-  
+
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Failed to fetch user stats:', {
@@ -391,7 +391,7 @@ export async function fetchUserStatsFromBackend(walletAddress: string): Promise<
     });
     throw new Error(`Failed to fetch user stats: ${response.status} ${response.statusText}`);
   }
-  
+
   const data: ApiUserStats = await response.json();
   console.log('Stats data received:', data);
   return data;
@@ -443,7 +443,7 @@ export const wakatimeService = {
    * @throws Error if API key format is invalid or backend request fails
    */
   saveApiKey: async (
-    walletAddress: string, 
+    walletAddress: string,
     apiKey: string
   ): Promise<void> => {
     // Validate API key format
@@ -452,15 +452,15 @@ export const wakatimeService = {
     }
 
     const baseUrl = import.meta.env.STATS_API_URL || 'https://motify-backend-3k55.onrender.com';
-    
+
     const response = await fetch(
       `${baseUrl}/oauth/wakatime/api-key`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           wallet_address: walletAddress.toLowerCase(),
-          api_key: apiKey 
+          api_key: apiKey
         }),
       }
     );
@@ -485,7 +485,7 @@ export const wakatimeService = {
     walletAddress: string
   ): Promise<{ has_api_key: boolean }> => {
     const baseUrl = import.meta.env.STATS_API_URL || 'https://motify-backend-3k55.onrender.com';
-    
+
     const response = await fetch(
       `${baseUrl}/oauth/wakatime/api-key/${walletAddress.toLowerCase()}`,
       {
@@ -514,7 +514,7 @@ export const wakatimeService = {
     walletAddress: string
   ): Promise<void> => {
     const baseUrl = import.meta.env.STATS_API_URL || 'https://motify-backend-3k55.onrender.com';
-    
+
     const response = await fetch(
       `${baseUrl}/oauth/wakatime/api-key/${walletAddress.toLowerCase()}`,
       {

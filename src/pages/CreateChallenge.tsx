@@ -61,7 +61,7 @@ const CreateChallenge = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
-    
+
     // Special handling for goal input when Wakatime + Coding Time is selected
     if (id === 'goal' && apiProvider === 'wakatime' && activityType === 'coding-time') {
       // Only allow integer values (no decimals)
@@ -271,16 +271,16 @@ const CreateChallenge = () => {
     if (apiProvider === "github") {
       // Only allow GitHub public contributions per day
       return [
-        { value: "contribution_per_day", label: "Public Contributions per Day", icon: "⚙️" },
+        { value: "contribution_per_day", label: "Public Contributions per Day", icon: "" },
       ];
     } else if (apiProvider === "farcaster") {
       // Only allow Farcaster casts per day
       return [
-        { value: "cast_per_day", label: "Casts per day", icon: "📢" },
+        { value: "cast_per_day", label: "Casts per day", icon: "" },
       ];
     } else if (apiProvider === "wakatime") {
       return [
-        { value: "coding-time", label: "Coding Time (hours)", icon: "⏱️" },
+        { value: "coding-time", label: "Coding Time (hours)", icon: "" },
       ];
     }
     return [];
@@ -471,10 +471,7 @@ const CreateChallenge = () => {
                     <SelectContent>
                       {getActivityTypes().map((activity) => (
                         <SelectItem key={activity.value} value={activity.value}>
-                          <div className="flex items-center gap-2">
-                            <span>{activity.icon}</span>
-                            <span>{activity.label}</span>
-                          </div>
+                          {activity.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -491,8 +488,8 @@ const CreateChallenge = () => {
                   type={apiProvider === 'wakatime' && activityType === 'coding-time' ? 'text' : 'number'}
                   inputMode={apiProvider === 'wakatime' && activityType === 'coding-time' ? 'numeric' : 'decimal'}
                   placeholder={
-                    apiProvider === 'wakatime' && activityType === 'coding-time' 
-                      ? 'e.g., 24' 
+                    apiProvider === 'wakatime' && activityType === 'coding-time'
+                      ? 'e.g., 24'
                       : 'e.g., 10000'
                   }
                   required

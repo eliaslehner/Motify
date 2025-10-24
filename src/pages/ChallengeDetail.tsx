@@ -1,5 +1,5 @@
 // pages/ChallengeDetail.tsx
-import { ArrowLeft, Calendar, DollarSign, Users, Trophy, Target, Loader2, TrendingUp, Heart, Wallet, Copy, CheckCircle2, ExternalLink, Share2, Check } from "lucide-react";
+import { ArrowLeft, Calendar, DollarSign, Users, Trophy, Target, Loader2, TrendingUp, Heart, Wallet, Copy, CheckCircle2, ExternalLink, Share2, Check, AlertTriangle } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useComposeCast } from '@coinbase/onchainkit/minikit';
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ChallengeStatusBadge } from "@/components/ChallengeStatusBadge";
 import { getServiceInfo, isGithubService } from "@/utils/serviceInfo";
 import { isChallengeActive, isChallengeCompleted, isChallengeUpcoming, formatTimestamp, formatDuration } from "@/utils/challengeHelpers";
@@ -1077,6 +1078,14 @@ const ChallengeDetail = () => {
                     ) : null}
                   </div>
                 )}
+
+                {/* Development Disclaimer */}
+                <Alert className="border-blue-500/50 bg-blue-500/10">
+                  <AlertTriangle className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-xs text-blue-600 ml-2">
+                    <strong>Beta Version:</strong> We're continuously improving. Please test with small amounts first. By participating, you acknowledge that we are not liable for any losses.
+                  </AlertDescription>
+                </Alert>
 
                 {/* Join Button */}
                 <Button
