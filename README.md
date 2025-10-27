@@ -11,6 +11,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Other Repositories](#repositories)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Pages & Routes](#pages--routes)
@@ -30,6 +31,14 @@
 Motify is a decentralized application (dApp) designed to motivate users to achieve personal goals and maintain healthy habits through the creation and participation in blockchain-verified challenges. By combining the power of smart contracts for transparent, trustless execution and integration with external APIs for activity tracking, Motify ensures accountability and provides a gamified experience for goal achievement.
 
 This repository contains the React-based frontend application, built as a Base Mini App, providing a user-friendly interface to interact with the Motify ecosystem.
+
+---
+
+## Other Repositories
+
+These are the links to the other repositories associated with Motify. 
+
+- [Contract and Token](https://github.com/etaaa/motify-smart-contracts): This is the repository for the challenge and token contracts on the Base (L2 Ethereum). 
 
 ---
 
@@ -122,7 +131,7 @@ The frontend application consists of several key pages, each serving a specific 
 
 ## API Integration
 
-The frontend communicates with the [Motify Backend](https://github.com/your-username/motify-backend) to manage user API integrations (GitHub, WakaTime), fetch user statistics, and retrieve challenge details. It uses the `ApiService` and dedicated service files (e.g., `githubService`, `wakatimeService`) for these interactions.
+The frontend communicates with the Motify Backend to manage user API integrations (GitHub, WakaTime), fetch user statistics, and retrieve challenge details. It uses the `ApiService` and dedicated service files (e.g., `githubService`, `wakatimeService`) for these interactions.
 
 ---
 
