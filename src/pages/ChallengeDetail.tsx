@@ -922,14 +922,14 @@ const ChallengeDetail = () => {
                         : "Join Challenge"}
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-gradient-to-br from-card to-card/50">
+            <DialogContent className="bg-gradient-to-br from-card to-card/50 max-h-[90vh] flex flex-col">
               <DialogHeader>
                 <DialogTitle>Join Challenge</DialogTitle>
                 <DialogDescription>
                   Enter the amount you want to stake for this challenge (in USDC). Minimum 1 USDC.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
+              <div className="space-y-4 py-4 overflow-y-auto flex-1">
                 {/* Token Balance Info */}
                 {tokenBalance > BigInt(0) && (
                   <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
