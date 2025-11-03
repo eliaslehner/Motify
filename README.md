@@ -39,8 +39,7 @@ This repository contains the React-based frontend application, built as a Base M
 These are the other repositories associated with Motify. 
 
 - **[Contracts](https://github.com/etaaa/motify-smart-contracts):** This is the repository for the challenge and token contracts on Base (L2 Ethereum).
-- **Backend:** The backend is temporarily private while we complete a security review. It handles OAuth token exchange and user API tokens, so we’re ensuring no secrets or sensitive configs are exposed. We’ll publish a sanitized version shortly.
-
+- **[Backend](https://github.com/larrycoder123/motify-backend):** This is the repository for the backend - only accessible by "devfolio-judge" github account.
 ---
 
 ## Features
